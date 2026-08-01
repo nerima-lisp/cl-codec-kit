@@ -14,6 +14,7 @@
    #:string-to-octets
    #:string-size-in-octets
    #:decode-prefix
+   #:lenient-decode-prefix
    #:*default-encoding*
    #:list-character-encodings
    #:find-character-encoding

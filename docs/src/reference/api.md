@@ -54,6 +54,23 @@ character boundary). A genuinely invalid -- as opposed to merely truncated
 `:utf-16`/`:utf-32`/`:ucs-2`; see
 [Streaming and generic encodings](conditions.md#streaming-and-generic-encodings).
 
+### `lenient-decode-prefix`
+
+```lisp
+(lenient-decode-prefix octets &key (start 0) end (encoding *default-encoding*)
+                                   (replacement (code-char #x1a)))
+```
+
+Like `decode-prefix`, but a genuinely invalid sequence is replaced by
+`replacement` and decoding continues, matching `octets-to-string`'s `errorp
+nil` mode -- only a truncated sequence at the very end of `octets[start,end)`
+is still held back as `decode-prefix` does. Neither `decode-prefix` nor
+`octets-to-string` alone provides this combination: a caller decoding a
+stream under a "replace invalid, but don't corrupt a character split across
+a chunk boundary" policy needs both at once. Signals
+`streaming-unsafe-encoding` for `:utf-16`/`:utf-32`/`:ucs-2`, for the same
+reason `decode-prefix` does.
+
 ## Registry
 
 ### `*default-encoding*`

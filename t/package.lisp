@@ -6,6 +6,7 @@
    #:it-property #:gen-integer #:gen-list #:gen-boolean #:gen-map #:gen-such-that)
   (:import-from #:cl-codec-kit
    #:octets-to-string #:string-to-octets #:string-size-in-octets #:decode-prefix
+   #:lenient-decode-prefix
    #:*default-encoding* #:list-character-encodings
    #:find-character-encoding
    #:cl-codec-kit-error #:decode-error #:decode-error-position

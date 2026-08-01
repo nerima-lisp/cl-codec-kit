@@ -64,3 +64,50 @@
                                                                      leftover (subseq full cut))
                                                         :encoding :utf-8))
                          :to-equal "hello 日本語 world"))))))
+
+(describe
+  "LENIENT-DECODE-PREFIX"
+  (it "decodes the whole buffer with an empty leftover when it ends on a boundary"
+    (let ((octets (string-to-octets "café" :encoding :utf-8)))
+      (multiple-value-bind (string leftover) (lenient-decode-prefix octets :encoding :utf-8)
+        (expect string :to-equal "café")
+        (expect (length leftover) :to-be 0))))
+
+  (it "holds back a trailing truncated sequence instead of replacing it, like DECODE-PREFIX"
+    (let* ((full (string-to-octets "café" :encoding :utf-8))
+           (end (1- (length full))))
+      (multiple-value-bind (string leftover) (lenient-decode-prefix full :end end :encoding :utf-8)
+        (expect string :to-equal "caf")
+        (expect leftover :to-equalp (subseq full (- end (length leftover)) end)))))
+
+  (it "replaces a genuinely invalid sequence and keeps decoding past it, unlike DECODE-PREFIX"
+    (multiple-value-bind (string leftover)
+        (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :utf-8)
+      (expect string :to-equal (format nil "a~Cb" (code-char #x1a)))
+      (expect (length leftover) :to-be 0)))
+
+  (it "honors a custom :REPLACEMENT character"
+    (multiple-value-bind (string leftover)
+        (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :utf-8 :replacement #\?)
+      (expect string :to-equal "a?b")
+      (expect (length leftover) :to-be 0)))
+
+  (it "resumes by RESYNC-WIDTH octets, not one, after a mid-buffer error in a wide encoding"
+    ;; An unpaired low surrogate as a lone UTF-16BE code unit is invalid, not
+    ;; truncated -- SURROGATE-CODE-POINT, not TRUNCATED-SEQUENCE. Resuming by
+    ;; a single octet after it would land mid-unit and either misdecode "b" or
+    ;; signal spuriously; resuming by RESYNC-WIDTH (2 octets) lands back on a
+    ;; unit boundary. This is the exact desync class %LENIENT-DECODE
+    ;; (api.lisp) was fixed for; LENIENT-DECODE-PREFIX must not reintroduce it.
+    (multiple-value-bind (string leftover)
+        (lenient-decode-prefix (octets #x00 #x61 #xDC #x00 #x00 #x62) :encoding :utf-16be)
+      (expect string :to-equal (format nil "a~Cb" (code-char #x1a)))
+      (expect (length leftover) :to-be 0)))
+
+  (it "signals STREAMING-UNSAFE-ENCODING for the generic, BOM-sensing designators"
+    (dolist (encoding '(:utf-16 :utf-32 :ucs-2))
+      (handler-case
+          (progn (lenient-decode-prefix (octets #x00) :encoding encoding)
+                 (error "expected STREAMING-UNSAFE-ENCODING for ~S" encoding))
+        (streaming-unsafe-encoding (c)
+          (expect (streaming-unsafe-encoding-designator c) :to-be encoding))))))

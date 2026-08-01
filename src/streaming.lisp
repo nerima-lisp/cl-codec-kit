@@ -42,3 +42,42 @@ designator instead."
         (let ((boundary (decode-error-position c)))
           (values (funcall (character-encoding-decoder enc) octets start boundary)
                   (subseq octets boundary end)))))))
+
+(defun lenient-decode-prefix (octets &key (start 0) end (encoding *default-encoding*)
+                              (replacement (code-char #x1a)))
+  "Like DECODE-PREFIX, but a genuinely invalid (as opposed to merely
+truncated) sequence is replaced by REPLACEMENT and decoding continues,
+matching OCTETS-TO-STRING's ERRORP NIL mode -- only a TRUNCATED-SEQUENCE at
+the very end of OCTETS[START,END) is still treated as a boundary to split
+at, exactly as in DECODE-PREFIX. Neither DECODE-PREFIX nor OCTETS-TO-STRING
+alone provides this combination: DECODE-PREFIX signals on an invalid
+sequence instead of substituting, and OCTETS-TO-STRING's lenient mode would
+substitute a trailing truncated sequence instead of holding it back for the
+next chunk. A caller decoding a stream in :REPLACE-style error policy needs
+both at once.
+
+Signals STREAMING-UNSAFE-ENCODING for the same BOM-sensing designators
+DECODE-PREFIX refuses, for the same reason."
+  (let* ((enc (find-character-encoding encoding))
+         (end (or end (length octets)))
+         (resync-width (character-encoding-resync-width enc))
+         (decoder (character-encoding-decoder enc))
+         (out (make-string-output-stream)))
+    (when (character-encoding-bom-sensing-p enc)
+      (error 'streaming-unsafe-encoding :designator encoding))
+    (let ((index start))
+      (loop while (< index end)
+            do (handler-case
+                   (progn (write-string (funcall decoder octets index end) out)
+                          (setf index end))
+                 (truncated-sequence (c)
+                   (let ((boundary (decode-error-position c)))
+                     (write-string (funcall decoder octets index boundary) out)
+                     (return-from lenient-decode-prefix
+                       (values (get-output-stream-string out) (subseq octets boundary end)))))
+                 (decode-error (c)
+                   (let ((position (decode-error-position c)))
+                     (write-string (funcall decoder octets index position) out)
+                     (write-char replacement out)
+                     (setf index (+ position resync-width)))))))
+    (values (get-output-stream-string out) (make-array 0 :element-type (array-element-type octets)))))
