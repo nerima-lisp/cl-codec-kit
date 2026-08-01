@@ -34,7 +34,16 @@
           (octets-to-string (octets #x00) :encoding encoding :errorp nil))))
 
   (it ":ERRORP T (the default) still decodes a generic designator in one shot"
-    (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :utf-16) :to-equal "A")))
+    (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :utf-16) :to-equal "A"))
+
+  (it "replaces a sequence truncated at the true end with exactly one REPLACEMENT"
+    ;; #xE3 #x81 is two of the three bytes UTF-8 needs for a character -- one
+    ;; malformed attempt, not two. A resync-width-based resume would land back
+    ;; inside the same truncated fragment (#x81 alone is not a valid leading
+    ;; byte either) and emit a second, spurious REPLACEMENT for it.
+    (let ((result (octets-to-string (octets #xE3 #x81) :encoding :utf-8 :errorp nil)))
+      (expect (length result) :to-be 1)
+      (expect (char-code (char result 0)) :to-be #x1a))))
 
 (describe
   "STRING-TO-OCTETS strict mode reports POSITION"

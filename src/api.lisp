@@ -17,6 +17,15 @@ succeed, never re-signal, and never desynchronize a fixed-width encoding's
 remaining code units, because resuming from POSITION by RESYNC-WIDTH (not by
 one octet) always lands back on a unit boundary.
 
+TRUNCATED-SEQUENCE is handled separately from every other DECODE-ERROR
+subtype, and must be checked first since it is itself a DECODE-ERROR
+subtype: by TRUNCATED-SEQUENCE's own contract (conditions.lisp), its
+POSITION only ever names a leading byte/unit that runs off the true END of
+OCTETS -- there is no more data that could complete it -- so the whole
+remaining OCTETS[POSITION,END) is one malformed attempt, replaced once and
+consumed entirely, rather than resuming by RESYNC-WIDTH and re-attempting
+the leftover bytes as further, spurious ones.
+
 ENCODING-STRUCT must not be BOM-sensing (see CHARACTER-ENCODING-BOM-SENSING-P
 in registry.lisp); OCTETS-TO-STRING checks this before calling here."
   (let ((resync-width (character-encoding-resync-width encoding-struct)))
@@ -29,6 +38,13 @@ in registry.lisp); OCTETS-TO-STRING checks this before calling here."
                                                octets index end)
                                      out)
                        (setf index end))
+                   (truncated-sequence (c)
+                     (let ((position (decode-error-position c)))
+                       (write-string (funcall (character-encoding-decoder encoding-struct)
+                                               octets index position)
+                                     out)
+                       (write-char replacement out)
+                       (setf index end)))
                    (decode-error (c)
                      (let ((position (decode-error-position c)))
                        (write-string (funcall (character-encoding-decoder encoding-struct)
