@@ -17,20 +17,24 @@
         (expect (array-element-type leftover) :to-equal (array-element-type octets)))))
 
   (it "splits UTF-8 at the last complete character, leaving a truncated tail"
-    (let ((full (string-to-octets "café" :encoding :utf-8)))
-      (multiple-value-bind (string leftover)
-          (decode-prefix full :end (1- (length full)) :encoding :utf-8)
+    (let* ((full (string-to-octets "café" :encoding :utf-8))
+           (end (1- (length full))))
+      (multiple-value-bind (string leftover) (decode-prefix full :end end :encoding :utf-8)
         (expect string :to-equal "caf")
         (expect (length leftover) :to-be 1)
-        (expect leftover :to-equalp (subseq full (1- (length full)))))))
+        ;; LEFTOVER is FULL[END-(LENGTH LEFTOVER),END) -- the truncated
+        ;; character's own leading byte(s), not simply FULL's last octet
+        ;; (which would be wrong whenever END is not the buffer's own
+        ;; length, as it isn't here).
+        (expect leftover :to-equalp (subseq full (- end (length leftover)) end)))))
 
   (it "splits UTF-16 at a character boundary that falls mid-surrogate-pair"
-    (let ((full (string-to-octets "a😀" :encoding :utf-16be)))
-      (multiple-value-bind (string leftover)
-          (decode-prefix full :end (1- (length full)) :encoding :utf-16be)
+    (let* ((full (string-to-octets "a😀" :encoding :utf-16be))
+           (end (1- (length full))))
+      (multiple-value-bind (string leftover) (decode-prefix full :end end :encoding :utf-16be)
         (expect string :to-equal "a")
         (expect (length leftover) :to-be 3)
-        (expect leftover :to-equalp (subseq full (1- (length full)))))))
+        (expect leftover :to-equalp (subseq full (- end (length leftover)) end)))))
 
   (it "propagates a genuinely invalid sequence rather than treating it as a boundary"
     (signals invalid-leading-byte
