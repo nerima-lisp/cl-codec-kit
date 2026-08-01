@@ -18,7 +18,14 @@
     (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :ucs-2) :to-equal "A"))
 
   (it "signals UNENCODABLE-CHARACTER for a supplementary-plane character"
-    (signals unencodable-character (string-to-octets (string (code-char #x10348)) :encoding :ucs-2be)))
+    (signals unencodable-character
+        (string-to-octets (string (code-char #x10348)) :encoding :ucs-2be)))
 
   (it "signals SURROGATE-CODE-POINT on a surrogate code unit, since UCS-2 has no pairing"
-    (signals surrogate-code-point (octets-to-string (octets #xD8 #x00) :encoding :ucs-2be))))
+    (signals surrogate-code-point (octets-to-string (octets #xD8 #x00) :encoding :ucs-2be)))
+
+  (it ":ERRORP NIL resyncs by whole 2-octet code units, not by one octet"
+    (let ((result (octets-to-string (octets #xD8 #x00 #x00 #x42) :encoding :ucs-2be :errorp nil)))
+      (expect (length result) :to-be 2)
+      (expect (char-code (char result 0)) :to-be #x1a)
+      (expect (char result 1) :to-be #\B))))

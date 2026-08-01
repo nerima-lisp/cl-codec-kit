@@ -14,8 +14,11 @@
   "cl-codec-kit vs. SB-EXT, as independent UTF-8 implementations"
   (it-property "STRING-TO-OCTETS agrees with SB-EXT:STRING-TO-OCTETS, for any scalar-value string"
       ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))
+    ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
+    ;; vectors, which would make this property vacuously true regardless of
+    ;; whether the two encoders actually agree.
     (expect (string-to-octets values :encoding :utf-8)
-            :to-equal (sb-ext:string-to-octets values :external-format :utf-8)))
+            :to-equalp (sb-ext:string-to-octets values :external-format :utf-8)))
 
   (it-property "OCTETS-TO-STRING agrees with SB-EXT:OCTETS-TO-STRING, for any valid UTF-8 buffer"
       ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))

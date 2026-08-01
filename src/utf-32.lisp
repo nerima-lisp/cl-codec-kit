@@ -37,20 +37,20 @@
                (write-char (code-char code-point) out))
              (incf index 4))))
 
-(defun %u32-encode (string start end byte-order)
+(defun %u32-encode (string start end byte-order encoding-name)
   (let ((result (make-array (* 4 (- end start)) :element-type '(unsigned-byte 8))))
     (loop for i from start below end
           for offset = (* 4 (- i start))
           for code = (char-code (char string i))
           do (when (or (<= #xD800 code #xDFFF) (> code #x10FFFF))
-               (error 'unencodable-character :char (char string i) :encoding :utf-32))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name))
              (%u32-write code result offset byte-order))
     result))
 
 (defun utf-32be-decode (octets start end) (%u32-decode octets start end :be))
-(defun utf-32be-encode (string start end) (%u32-encode string start end :be))
+(defun utf-32be-encode (string start end) (%u32-encode string start end :be :utf-32be))
 (defun utf-32le-decode (octets start end) (%u32-decode octets start end :le))
-(defun utf-32le-encode (string start end) (%u32-encode string start end :le))
+(defun utf-32le-encode (string start end) (%u32-encode string start end :le :utf-32le))
 
 (defun utf-32-decode (octets start end)
   "Generic UTF-32: senses a 4-octet BOM and strips it; defaults to big-endian
@@ -67,8 +67,9 @@ when no BOM is present, matching generic UTF-16's convention here."
 (defun utf-32-encode (string start end)
   (concatenate '(vector (unsigned-byte 8)) #(0 0 #xFE #xFF) (utf-32be-encode string start end)))
 
-(define-encoding :utf-32be (:aliases (:utf-32/be :ucs-4be :ucs-4/be))
+(define-encoding :utf-32be (:aliases (:utf-32/be :ucs-4be :ucs-4/be) :resync-width 4)
   :decoder utf-32be-decode :encoder utf-32be-encode)
-(define-encoding :utf-32le (:aliases (:utf-32/le :ucs-4le :ucs-4/le))
+(define-encoding :utf-32le (:aliases (:utf-32/le :ucs-4le :ucs-4/le) :resync-width 4)
   :decoder utf-32le-decode :encoder utf-32le-encode)
-(define-encoding :utf-32 (:aliases (:ucs-4)) :decoder utf-32-decode :encoder utf-32-encode)
+(define-encoding :utf-32 (:aliases (:ucs-4) :resync-width 4 :bom-sensing-p t)
+  :decoder utf-32-decode :encoder utf-32-encode)

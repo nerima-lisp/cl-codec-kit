@@ -3,8 +3,8 @@
 ;;;; The single public package. Layers build on each other in the order they
 ;;;; are loaded (per cl-codec-kit.asd's :serial t): conditions and registry
 ;;;; come first since every encoding depends on both; each encoding file
-;;;; (utf-8, utf-8b, utf-16, utf-32, ucs-2, ascii, iso-8859-1) registers
-;;;; itself independently of the others; streaming and api are built on the
+;;;; (utf-8, utf-16, utf-32, ucs-2, ascii, iso-8859-1) registers itself
+;;;; independently of the others; streaming and api are built on the
 ;;;; registry alone, never on a specific encoding.
 (defpackage #:cl-codec-kit
   (:use #:cl)
@@ -16,13 +16,16 @@
    #:decode-prefix
    #:*default-encoding*
    #:list-character-encodings
-   #:character-encoding-p
    #:find-character-encoding
 
    ;; Conditions
    #:cl-codec-kit-error
+   #:decode-error
+   #:decode-error-position
    #:unsupported-encoding
    #:unsupported-encoding-designator
+   #:streaming-unsafe-encoding
+   #:streaming-unsafe-encoding-designator
    #:invalid-leading-byte
    #:invalid-leading-byte-position
    #:invalid-leading-byte-octet

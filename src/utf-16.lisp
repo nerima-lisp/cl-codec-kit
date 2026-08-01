@@ -54,14 +54,14 @@ next-index)."
 (defun %u16-code-unit-count (code-point)
   (if (< code-point #x10000) 1 2))
 
-(defun %u16-encode (string start end byte-order)
+(defun %u16-encode (string start end byte-order encoding-name)
   (let ((size 0))
     (loop for i from start below end
           for code = (char-code (char string i))
           do (when (<= #xD800 code #xDFFF)
-               (error 'unencodable-character :char (char string i) :encoding :utf-16))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name))
              (when (> code #x10FFFF)
-               (error 'unencodable-character :char (char string i) :encoding :utf-16))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name))
              (incf size (* 2 (%u16-code-unit-count code))))
     (let ((result (make-array size :element-type '(unsigned-byte 8)))
           (offset 0))
@@ -78,9 +78,9 @@ next-index)."
       result)))
 
 (defun utf-16be-decode (octets start end) (%u16-decode octets start end :be))
-(defun utf-16be-encode (string start end) (%u16-encode string start end :be))
+(defun utf-16be-encode (string start end) (%u16-encode string start end :be :utf-16be))
 (defun utf-16le-decode (octets start end) (%u16-decode octets start end :le))
-(defun utf-16le-encode (string start end) (%u16-encode string start end :le))
+(defun utf-16le-encode (string start end) (%u16-encode string start end :le :utf-16le))
 
 (defun utf-16-decode (octets start end)
   "Generic UTF-16: senses a BOM (FE FF for big-endian, FF FE for
@@ -97,6 +97,9 @@ little-endian) and strips it; defaults to big-endian when no BOM is present."
   (let ((body (utf-16be-encode string start end)))
     (concatenate '(vector (unsigned-byte 8)) #(#xFE #xFF) body)))
 
-(define-encoding :utf-16be (:aliases (:utf-16/be)) :decoder utf-16be-decode :encoder utf-16be-encode)
-(define-encoding :utf-16le (:aliases (:utf-16/le)) :decoder utf-16le-decode :encoder utf-16le-encode)
-(define-encoding :utf-16 () :decoder utf-16-decode :encoder utf-16-encode)
+(define-encoding :utf-16be (:aliases (:utf-16/be) :resync-width 2)
+  :decoder utf-16be-decode :encoder utf-16be-encode)
+(define-encoding :utf-16le (:aliases (:utf-16/le) :resync-width 2)
+  :decoder utf-16le-decode :encoder utf-16le-encode)
+(define-encoding :utf-16 (:resync-width 2 :bom-sensing-p t)
+  :decoder utf-16-decode :encoder utf-16-encode)

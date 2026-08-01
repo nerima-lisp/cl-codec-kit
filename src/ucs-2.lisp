@@ -19,20 +19,20 @@
                (write-char (code-char unit) out))
              (incf index 2))))
 
-(defun %ucs2-encode (string start end byte-order)
+(defun %ucs2-encode (string start end byte-order encoding-name)
   (let ((result (make-array (* 2 (- end start)) :element-type '(unsigned-byte 8))))
     (loop for i from start below end
           for offset = (* 2 (- i start))
           for code = (char-code (char string i))
           do (when (or (> code #xFFFF) (<= #xD800 code #xDFFF))
-               (error 'unencodable-character :char (char string i) :encoding :ucs-2))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name))
              (%u16-write code result offset byte-order))
     result))
 
 (defun ucs-2be-decode (octets start end) (%ucs2-decode octets start end :be))
-(defun ucs-2be-encode (string start end) (%ucs2-encode string start end :be))
+(defun ucs-2be-encode (string start end) (%ucs2-encode string start end :be :ucs-2be))
 (defun ucs-2le-decode (octets start end) (%ucs2-decode octets start end :le))
-(defun ucs-2le-encode (string start end) (%ucs2-encode string start end :le))
+(defun ucs-2le-encode (string start end) (%ucs2-encode string start end :le :ucs-2le))
 
 (defun ucs-2-decode (octets start end)
   (if (>= (- end start) 2)
@@ -46,6 +46,9 @@
 (defun ucs-2-encode (string start end)
   (concatenate '(vector (unsigned-byte 8)) #(#xFE #xFF) (ucs-2be-encode string start end)))
 
-(define-encoding :ucs-2be (:aliases (:ucs-2/be)) :decoder ucs-2be-decode :encoder ucs-2be-encode)
-(define-encoding :ucs-2le (:aliases (:ucs-2/le)) :decoder ucs-2le-decode :encoder ucs-2le-encode)
-(define-encoding :ucs-2 () :decoder ucs-2-decode :encoder ucs-2-encode)
+(define-encoding :ucs-2be (:aliases (:ucs-2/be) :resync-width 2)
+  :decoder ucs-2be-decode :encoder ucs-2be-encode)
+(define-encoding :ucs-2le (:aliases (:ucs-2/le) :resync-width 2)
+  :decoder ucs-2le-decode :encoder ucs-2le-encode)
+(define-encoding :ucs-2 (:resync-width 2 :bom-sensing-p t)
+  :decoder ucs-2-decode :encoder ucs-2-encode)

@@ -20,4 +20,7 @@
     (signals unencodable-character (string-to-octets "café" :encoding :ascii)))
 
   (it "resolves the :US-ASCII alias to the same encoding"
-    (expect (string-to-octets "hi" :encoding :us-ascii) :to-equal (string-to-octets "hi" :encoding :ascii))))
+    ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
+    ;; vectors and would pass regardless of content.
+    (expect (string-to-octets "hi" :encoding :us-ascii)
+            :to-equalp (string-to-octets "hi" :encoding :ascii))))

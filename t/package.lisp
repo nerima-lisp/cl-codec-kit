@@ -6,9 +6,11 @@
    #:it-property #:gen-integer #:gen-list #:gen-boolean #:gen-map #:gen-such-that)
   (:import-from #:cl-codec-kit
    #:octets-to-string #:string-to-octets #:string-size-in-octets #:decode-prefix
-   #:*default-encoding* #:list-character-encodings #:character-encoding-p
+   #:*default-encoding* #:list-character-encodings
    #:find-character-encoding
-   #:cl-codec-kit-error #:unsupported-encoding #:unsupported-encoding-designator
+   #:cl-codec-kit-error #:decode-error #:decode-error-position
+   #:unsupported-encoding #:unsupported-encoding-designator
+   #:streaming-unsafe-encoding #:streaming-unsafe-encoding-designator
    #:invalid-leading-byte #:invalid-leading-byte-position #:invalid-leading-byte-octet
    #:invalid-continuation-byte #:invalid-continuation-byte-position
    #:invalid-continuation-byte-octet

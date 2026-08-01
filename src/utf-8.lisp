@@ -39,10 +39,18 @@ past END. Returns (values character next-index)."
           (let ((available (- end index 1)))
             ;; An invalid continuation byte is never a truncation, no matter
             ;; how few bytes remain -- check every available one first.
+            ;;
+            ;; POSITION is INDEX (the sequence's own leading byte), not the
+            ;; offending continuation byte's own offset: every position-
+            ;; bearing condition in this library marks where the failing
+            ;; character *starts*, which is the invariant DECODE-PREFIX and
+            ;; %LENIENT-DECODE (api.lisp) both rely on to redecode OCTETS
+            ;; [attempt-start, POSITION) as a guaranteed-clean prefix. OCTET
+            ;; still names the specific bad byte for diagnostics.
             (loop for offset from 1 below (min length (1+ available))
                   for byte = (aref octets (+ index offset))
                   unless (%utf8-continuation-octet-p byte)
-                    do (error 'invalid-continuation-byte :position (+ index offset) :octet byte))
+                    do (error 'invalid-continuation-byte :position index :octet byte))
             (when (< available (1- length))
               (error 'truncated-sequence :position index)))
           (let ((code-point

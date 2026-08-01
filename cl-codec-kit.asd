@@ -8,7 +8,7 @@
 (in-package #:asdf-user)
 
 (defsystem "cl-codec-kit"
-  :description "A from-scratch, dependency-free Common Lisp codec library with babel-compatible string/octet encoding support"
+  :description "A from-scratch, dependency-free Common Lisp codec library, babel-API-compatible"
   :long-description "cl-codec-kit decodes and encodes octet vectors and
 strings across the Unicode encoding family (UTF-8, UTF-16, UTF-32, UCS-2,
 each with explicit big/little-endian variants), plus ASCII and ISO-8859-1,
@@ -21,7 +21,7 @@ hand back the incomplete trailing sequence -- generalizes a primitive
 cl-tty-kit and cl-process-kit had each independently hand-rolled for UTF-8
 alone. The remaining ISO-8859-2..16, Windows code pages, EBCDIC, GBK,
 ISO-2022-JP, and other legacy 8-bit/CJK encodings babel supports are not yet
-implemented; see docs/src/roadmap.md."
+implemented; see docs/src/project/roadmap.md."
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"

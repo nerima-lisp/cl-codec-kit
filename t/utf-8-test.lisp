@@ -14,20 +14,32 @@
             :to-equal values))
 
   (it "encodes known code points to their documented UTF-8 byte sequences"
-    (expect (string-to-octets (string (code-char #x24)) :encoding :utf-8) :to-equal (octets #x24))
+    ;; :TO-EQUAL is CL:EQUAL, which does not descend (UNSIGNED-BYTE 8)
+    ;; vectors -- two distinct, content-identical octet vectors are EQUAL
+    ;; only by falling through to EQ, which is false for freshly-allocated
+    ;; arrays. :TO-EQUALP (CL:EQUALP) is required for every octet-vector
+    ;; comparison in this file.
+    (expect (string-to-octets (string (code-char #x24)) :encoding :utf-8)
+            :to-equalp (octets #x24))
     (expect (string-to-octets (string (code-char #xA2)) :encoding :utf-8)
-            :to-equal (octets #xC2 #xA2))
+            :to-equalp (octets #xC2 #xA2))
     (expect (string-to-octets (string (code-char #x20AC)) :encoding :utf-8)
-            :to-equal (octets #xE2 #x82 #xAC))
+            :to-equalp (octets #xE2 #x82 #xAC))
     (expect (string-to-octets (string (code-char #x10348)) :encoding :utf-8)
-            :to-equal (octets #xF0 #x90 #x8D #x88)))
+            :to-equalp (octets #xF0 #x90 #x8D #x88)))
 
   (it "signals INVALID-LEADING-BYTE on a stray continuation or FE/FF byte"
     (signals invalid-leading-byte (octets-to-string (octets #x80) :encoding :utf-8))
     (signals invalid-leading-byte (octets-to-string (octets #xFF) :encoding :utf-8)))
 
-  (it "signals INVALID-CONTINUATION-BYTE when a continuation byte is malformed"
-    (signals invalid-continuation-byte (octets-to-string (octets #xE2 #x28 #xA1) :encoding :utf-8)))
+  (it "signals INVALID-CONTINUATION-BYTE at the sequence's start, not the bad byte's own offset"
+    (handler-case
+        (progn (octets-to-string (octets #xE2 #x28 #xA1) :encoding :utf-8)
+               (error "expected INVALID-CONTINUATION-BYTE"))
+      (invalid-continuation-byte (c)
+        (expect (invalid-continuation-byte-position c) :to-be 0)
+        (expect (decode-error-position c) :to-be 0)
+        (expect (invalid-continuation-byte-octet c) :to-be #x28))))
 
   (it "signals INVALID-LEADING-BYTE for #xC0/#xC1, which the restricted grammar
 excludes entirely since they could only ever start an overlong 2-byte sequence"
@@ -51,7 +63,7 @@ excludes entirely since they could only ever start an overlong 2-byte sequence"
     (expect (octets-to-string (octets #x41 #xC3 #xA9 #x42) :start 1 :end 3 :encoding :utf-8)
             :to-equal "é")
     (expect (string-to-octets "xcafé y" :start 1 :end 5 :encoding :utf-8)
-            :to-equal (string-to-octets "café" :encoding :utf-8)))
+            :to-equalp (string-to-octets "café" :encoding :utf-8)))
 
   (it "signals UNENCODABLE-CHARACTER for a raw surrogate half character"
     (signals unencodable-character

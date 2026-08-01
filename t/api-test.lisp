@@ -16,17 +16,22 @@
 
 (describe
   "OCTETS-TO-STRING lenient mode across encodings"
-  ;; The default replacement is #x1A (SUB); these compare CHAR-CODE rather
+  ;; The default replacement is #x1A (SUB); this compares CHAR-CODE rather
   ;; than embedding the raw control character in a literal, so a failing
-  ;; expectation's printed diff never contains it.
-  (it "replaces a truncated UTF-16 surrogate pair at the buffer's end"
-    (let ((result (octets-to-string (octets #x00 #x41 #xD8 #x00) :encoding :utf-16be :errorp nil)))
-      (expect (length result) :to-be 2)
-      (expect (char result 0) :to-be #\A)
-      (expect (char-code (char result 1)) :to-be #x1a)))
-  (it "replaces an unencodable-by-decode ASCII byte and keeps going"
+  ;; expectation's printed diff never contains it. UTF-16's own lenient-mode
+  ;; resync behavior (RESYNC-WIDTH) is covered in utf-16-test.lisp instead of
+  ;; duplicated here.
+  (it "replaces an invalid ASCII byte and keeps going, one octet at a time"
     (let ((result (octets-to-string (octets #x41 #xFF #x42) :encoding :ascii :errorp nil)))
       (expect (length result) :to-be 3)
       (expect (char result 0) :to-be #\A)
       (expect (char-code (char result 1)) :to-be #x1a)
-      (expect (char result 2) :to-be #\B))))
+      (expect (char result 2) :to-be #\B)))
+
+  (it ":ERRORP NIL signals STREAMING-UNSAFE-ENCODING for the generic designators"
+    (dolist (encoding '(:utf-16 :utf-32 :ucs-2))
+      (signals streaming-unsafe-encoding
+          (octets-to-string (octets #x00) :encoding encoding :errorp nil))))
+
+  (it ":ERRORP T (the default) still decodes a generic designator in one shot"
+    (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :utf-16) :to-equal "A")))

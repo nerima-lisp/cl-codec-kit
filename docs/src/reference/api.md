@@ -13,7 +13,9 @@ Decode `octets[start,end)` as `encoding` into a string. When `errorp` is
 true (the default), an invalid or truncated sequence signals the
 corresponding condition (see [Conditions](conditions.md)). When `errorp` is
 `nil`, each invalid or truncated sequence is replaced by `replacement`
-instead, and decoding continues.
+instead, and decoding continues -- except for `:utf-16`/`:utf-32`/`:ucs-2`,
+which signal `streaming-unsafe-encoding` instead; see
+[Streaming and generic encodings](conditions.md#streaming-and-generic-encodings).
 
 ### `string-to-octets`
 
@@ -32,7 +34,9 @@ cannot represent -- there is no lenient mode on encode.
 ```
 
 Return how many octets `string-to-octets` would produce for the same
-arguments, without retaining the encoded vector.
+arguments. This calls `string-to-octets` internally and discards the result
+rather than measuring without allocating -- it exists for API parity with
+babel's `string-size-in-octets`, not as a faster alternative to encoding.
 
 ## Streaming
 
@@ -46,7 +50,9 @@ Decode as much of `octets[start,end)` as forms complete characters. Returns
 two values: the decoded string, and a fresh octet vector holding whatever
 incomplete trailing sequence remains (empty when `octets` ends on a
 character boundary). A genuinely invalid -- as opposed to merely truncated
--- sequence still signals normally.
+-- sequence still signals normally. Signals `streaming-unsafe-encoding` for
+`:utf-16`/`:utf-32`/`:ucs-2`; see
+[Streaming and generic encodings](conditions.md#streaming-and-generic-encodings).
 
 ## Registry
 
@@ -69,8 +75,20 @@ its registered encoding, or signal `unsupported-encoding`.
 
 ## Supported encodings
 
-`:utf-8`, `:utf-16`, `:utf-16be`, `:utf-16le`, `:utf-32`, `:utf-32be`,
-`:utf-32le`, `:ucs-2`, `:ucs-2be`, `:ucs-2le`, `:ascii` (alias `:us-ascii`),
-`:iso-8859-1` (aliases `:latin-1`, `:latin1`). See the
-[roadmap](../project/roadmap.md) for encodings babel supports that are not
-yet implemented here.
+| Encoding | Aliases |
+|---|---|
+| `:utf-8` | -- |
+| `:utf-16` | -- (generic, senses a byte-order mark on decode; always emits one on encode) |
+| `:utf-16be` | `:utf-16/be` |
+| `:utf-16le` | `:utf-16/le` |
+| `:utf-32` | `:ucs-4` |
+| `:utf-32be` | `:utf-32/be`, `:ucs-4be`, `:ucs-4/be` |
+| `:utf-32le` | `:utf-32/le`, `:ucs-4le`, `:ucs-4/le` |
+| `:ucs-2` | -- (generic, senses a byte-order mark on decode; always emits one on encode) |
+| `:ucs-2be` | `:ucs-2/be` |
+| `:ucs-2le` | `:ucs-2/le` |
+| `:ascii` | `:us-ascii` |
+| `:iso-8859-1` | `:latin-1`, `:latin1` |
+
+See the [roadmap](../project/roadmap.md) for encodings babel supports that
+are not yet implemented here.

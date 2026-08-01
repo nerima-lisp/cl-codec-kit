@@ -33,10 +33,15 @@ These are deferred rather than fabricated because most require large,
 hand-verified mapping tables (hundreds to thousands of entries each) that
 would be transcribed from a reference source rather than genuinely
 implemented from first principles, and none has a current consumer in this
-org. Adding one is a self-contained addition: a new `src/<encoding>.lisp`
-file that calls `define-encoding` (see `src/registry.lisp`), following the
-shape of `src/ascii.lisp` or `src/iso-8859-1.lisp` for a fixed-width
-encoding, or `src/utf-8.lisp` for a variable-width one.
+org. Adding one needs: a new `src/<encoding>.lisp` file that calls
+`define-encoding` (see `src/registry.lisp`) with the correct `:resync-width`
+(1 for byte-oriented, or the fixed code-unit width in octets otherwise) and
+`:bom-sensing-p` (only for a *generic*, byte-order-sensing designator --
+see [Streaming and generic encodings](../reference/conditions.md#streaming-and-generic-encodings)),
+following the shape of `src/ascii.lisp`/`src/iso-8859-1.lisp` for a
+fixed-width encoding or `src/utf-8.lisp` for a variable-width one; and an
+entry in `cl-codec-kit.asd`'s `:components` list, in `:serial` load order
+after `registry`.
 
 ## Planned follow-up work (outside this repository)
 
