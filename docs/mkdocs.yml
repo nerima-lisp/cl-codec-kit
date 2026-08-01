@@ -1,0 +1,51 @@
+site_name: cl-codec-kit
+site_description: A from-scratch, dependency-free Common Lisp codec library with babel-compatible string/octet encoding support
+site_url: https://nerima-lisp.github.io/cl-codec-kit/
+repo_url: https://github.com/nerima-lisp/cl-codec-kit
+repo_name: nerima-lisp/cl-codec-kit
+edit_uri: edit/main/docs/src/
+
+docs_dir: src
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Reference:
+      - API: reference/api.md
+      - Conditions: reference/conditions.md
+  - Project:
+      - Roadmap: project/roadmap.md
+
+not_in_nav: |
+  notes/
