@@ -137,9 +137,13 @@ instead of being treated as a decodable boundary."
 
 (%define-codec-condition unencodable-character
     ((char "The character that ENCODING cannot represent.")
-     (encoding "The encoding designator that was asked to encode CHAR."))
+     (encoding "The encoding designator that was asked to encode CHAR.")
+     (position "The index into the STRING argument where CHAR sits."))
   ("Character ~S is not encodable in ~S." (unencodable-character-char condition)
    (unencodable-character-encoding condition))
   "Signaled while encoding when a character's code point falls outside the
 codespace ENCODING can represent -- for example any code point above U+FF in
-ISO-8859-1, or above U+7F in ASCII.")
+ISO-8859-1, or above U+7F in ASCII. POSITION is a string index, unlike
+DECODE-ERROR's octet-index POSITION -- one CL character is always exactly one
+string index, so %LENIENT-ENCODE (api.lisp) never needs an encoding-specific
+resync width the way %LENIENT-DECODE does for octets.")

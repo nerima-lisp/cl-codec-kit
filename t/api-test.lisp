@@ -35,3 +35,40 @@
 
   (it ":ERRORP T (the default) still decodes a generic designator in one shot"
     (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :utf-16) :to-equal "A")))
+
+(describe
+  "STRING-TO-OCTETS strict mode reports POSITION"
+  (it "names the string index of the first unencodable character, not just the character"
+    (handler-case (progn (string-to-octets (format nil "ab~Ccd" (code-char 200)) :encoding :ascii)
+                         (error "expected UNENCODABLE-CHARACTER"))
+      (unencodable-character (c)
+        (expect (unencodable-character-position c) :to-be 2)
+        (expect (unencodable-character-char c) :to-be (code-char 200))))))
+
+(describe
+  "STRING-TO-OCTETS lenient mode across encodings"
+  (it "replaces an unencodable ASCII character and keeps going, one character at a time"
+    (let ((result (string-to-octets (format nil "A~CB" (code-char 200))
+                                    :encoding :ascii :errorp nil)))
+      (expect result :to-equalp (octets #x41 #x1a #x42))))
+
+  (it "honors a custom :REPLACEMENT character"
+    (let ((result (string-to-octets (format nil "A~CB" (code-char 200))
+                                    :encoding :ascii :errorp nil :replacement #\?)))
+      (expect result :to-equalp (octets #x41 #x3f #x42))))
+
+  (it "resumes by one string index (never a resync width) after a lone UTF-16BE surrogate"
+    (let* ((lone-surrogate (code-char #xD800))
+           (result (string-to-octets (format nil "a~Cb" lone-surrogate)
+                                     :encoding :utf-16be :errorp nil)))
+      (expect result
+              :to-equalp (concatenate '(vector (unsigned-byte 8))
+                                      (string-to-octets "a" :encoding :utf-16be)
+                                      (string-to-octets (string (code-char #x1a))
+                                                        :encoding :utf-16be)
+                                      (string-to-octets "b" :encoding :utf-16be)))))
+
+  (it "propagates UNENCODABLE-CHARACTER rather than looping when REPLACEMENT itself cannot encode"
+    (signals unencodable-character
+        (string-to-octets (format nil "A~CB" (code-char 200))
+                          :encoding :ascii :errorp nil :replacement (code-char 200)))))

@@ -19,7 +19,8 @@
    #:surrogate-code-point #:surrogate-code-point-position #:surrogate-code-point-value
    #:code-point-too-large #:code-point-too-large-position #:code-point-too-large-value
    #:truncated-sequence #:truncated-sequence-position
-   #:unencodable-character #:unencodable-character-char #:unencodable-character-encoding)
+   #:unencodable-character #:unencodable-character-char #:unencodable-character-encoding
+   #:unencodable-character-position)
   (:export #:run-tests))
 
 (in-package #:cl-codec-kit/test)

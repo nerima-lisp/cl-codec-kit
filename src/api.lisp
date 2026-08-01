@@ -62,14 +62,43 @@ would wrongly re-check for a byte-order mark."
             (error 'streaming-unsafe-encoding :designator encoding))
           (%lenient-decode enc octets start end replacement)))))
 
-(defun string-to-octets (string &key (start 0) end (encoding *default-encoding*))
+(defun %lenient-encode (encoding-struct string start end replacement)
+  "Encode STRING[START,END) with ENCODING-STRUCT, substituting REPLACEMENT's
+own encoding for each character ENCODING-STRUCT cannot represent instead of
+signaling. Unlike %LENIENT-DECODE, resuming past a bad character never needs
+a resync width: one CL character is always exactly one STRING index, so
+UNENCODABLE-CHARACTER's POSITION (conditions.lisp) already names the next
+character to try. If REPLACEMENT itself is not representable in
+ENCODING-STRUCT, UNENCODABLE-CHARACTER propagates uncaught rather than
+looping."
+  (let ((encoder (character-encoding-encoder encoding-struct)))
+    (let ((chunks '())
+          (index start))
+      (loop while (< index end)
+            do (handler-case
+                   (progn (push (funcall encoder string index end) chunks)
+                          (setf index end))
+                 (unencodable-character (c)
+                   (let ((position (unencodable-character-position c)))
+                     (push (funcall encoder string index position) chunks)
+                     (push (funcall encoder (string replacement) 0 1) chunks)
+                     (setf index (1+ position))))))
+      (apply #'concatenate '(vector (unsigned-byte 8)) (nreverse chunks)))))
+
+(defun string-to-octets (string &key (start 0) end (encoding *default-encoding*)
+                                (errorp t) (replacement (code-char #x1a)))
   "Encode STRING[START,END) (default the whole string) as ENCODING into a
-fresh (UNSIGNED-BYTE 8) vector. Always signals UNENCODABLE-CHARACTER on a
-character ENCODING cannot represent; unlike OCTETS-TO-STRING there is no
-lenient mode here, since none of this library's callers need one on encode."
+fresh (UNSIGNED-BYTE 8) vector. When ERRORP is true (the default), a
+character ENCODING cannot represent signals UNENCODABLE-CHARACTER. When
+ERRORP is NIL, each unencodable character is instead replaced by
+REPLACEMENT's own encoding and encoding continues -- REPLACEMENT defaults to
+#x1A (SUB), representable in every encoding this library registers, matching
+OCTETS-TO-STRING's own default and babel's ENC-DEFAULT-REPLACEMENT."
   (let* ((enc (find-character-encoding encoding))
          (end (or end (length string))))
-    (funcall (character-encoding-encoder enc) string start end)))
+    (if errorp
+        (funcall (character-encoding-encoder enc) string start end)
+        (%lenient-encode enc string start end replacement))))
 
 (defun string-size-in-octets (string &key (start 0) end (encoding *default-encoding*))
   "Return how many octets STRING-TO-OCTETS would produce for the same

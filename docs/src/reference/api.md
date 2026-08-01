@@ -20,12 +20,19 @@ which signal `streaming-unsafe-encoding` instead; see
 ### `string-to-octets`
 
 ```lisp
-(string-to-octets string &key (start 0) end (encoding *default-encoding*))
+(string-to-octets string &key (start 0) end (encoding *default-encoding*)
+                              (errorp t) (replacement (code-char #x1a)))
 ```
 
 Encode `string[start,end)` as `encoding` into a fresh `(unsigned-byte 8)`
-vector. Always signals `unencodable-character` on a character `encoding`
-cannot represent -- there is no lenient mode on encode.
+vector. When `errorp` is true (the default), a character `encoding` cannot
+represent signals `unencodable-character` (see [Conditions](conditions.md)).
+When `errorp` is `nil`, each unencodable character is replaced by
+`replacement`'s own encoding instead, and encoding continues -- resuming
+never needs a resync width the way lenient decoding does, since one CL
+character is always exactly one `string` index. If `replacement` itself is
+not representable in `encoding`, `unencodable-character` propagates rather
+than looping.
 
 ### `string-size-in-octets`
 

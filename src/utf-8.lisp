@@ -80,21 +80,22 @@ past END. Returns (values character next-index)."
                (write-char char out)
                (setf index next)))))
 
-(defun %utf8-encoded-length (code-point char)
+(defun %utf8-encoded-length (code-point char position)
   "Return the octet length CODE-POINT needs in UTF-8, or signal
 UNENCODABLE-CHARACTER for a surrogate half or an out-of-range code point."
   (cond
     ((< code-point #x80) 1)
     ((< code-point #x800) 2)
-    ((<= #xD800 code-point #xDFFF) (error 'unencodable-character :char char :encoding :utf-8))
+    ((<= #xD800 code-point #xDFFF)
+     (error 'unencodable-character :char char :encoding :utf-8 :position position))
     ((< code-point #x10000) 3)
     ((<= code-point #x10FFFF) 4)
-    (t (error 'unencodable-character :char char :encoding :utf-8))))
+    (t (error 'unencodable-character :char char :encoding :utf-8 :position position))))
 
 (defun utf-8-encode (string start end)
   (let ((size 0))
     (loop for i from start below end
-          do (incf size (%utf8-encoded-length (char-code (char string i)) (char string i))))
+          do (incf size (%utf8-encoded-length (char-code (char string i)) (char string i) i)))
     (let ((result (make-array size :element-type '(unsigned-byte 8)))
           (offset 0))
       (loop for i from start below end

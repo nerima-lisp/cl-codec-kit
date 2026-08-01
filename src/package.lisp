@@ -45,6 +45,7 @@
    #:truncated-sequence-position
    #:unencodable-character
    #:unencodable-character-char
-   #:unencodable-character-encoding))
+   #:unencodable-character-encoding
+   #:unencodable-character-position))
 
 (in-package #:cl-codec-kit)

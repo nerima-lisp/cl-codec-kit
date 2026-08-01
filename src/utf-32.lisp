@@ -43,7 +43,8 @@
           for offset = (* 4 (- i start))
           for code = (char-code (char string i))
           do (when (or (<= #xD800 code #xDFFF) (> code #x10FFFF))
-               (error 'unencodable-character :char (char string i) :encoding encoding-name))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name
+                                             :position i))
              (%u32-write code result offset byte-order))
     result))
 

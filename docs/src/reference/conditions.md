@@ -23,7 +23,7 @@ by signaling a `decode-error` subtype.
 | `surrogate-code-point` | A decoder assembles or encounters a code point in the UTF-16 surrogate range (U+D800-U+DFFF) where that range is never valid on its own. Readers: `surrogate-code-point-position`, `surrogate-code-point-value`. |
 | `code-point-too-large` | A decoder assembles a code point above U+10FFFF. Readers: `code-point-too-large-position`, `code-point-too-large-value`. |
 | `truncated-sequence` | A multi-byte sequence's leading byte/unit is valid but the buffer ends before its continuation bytes/units do. `decode-prefix` catches this specifically to split a buffer at a character boundary. Reader: `truncated-sequence-position`. |
-| `unencodable-character` | `string-to-octets` (or `string-size-in-octets`) is asked to encode a character outside the encoding's codespace. `encoding` names the exact designator requested (e.g. `:utf-16be`, never the family name `:utf-16`). Readers: `unencodable-character-char`, `unencodable-character-encoding`. |
+| `unencodable-character` | `string-to-octets` (or `string-size-in-octets`) is asked to encode a character outside the encoding's codespace. `encoding` names the exact designator requested (e.g. `:utf-16be`, never the family name `:utf-16`). `position` is a `string` index, unlike `decode-error`'s octet-index `position` -- one CL character is always exactly one `string` index. Readers: `unencodable-character-char`, `unencodable-character-encoding`, `unencodable-character-position`. |
 
 Every `decode-error` subtype's `position` names where the *failing character
 starts* -- never a byte offset inside an otherwise-recognized sequence. That

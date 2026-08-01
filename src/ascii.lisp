@@ -18,7 +18,7 @@
     (loop for i from start below end
           for code = (char-code (char string i))
           do (when (> code #x7F)
-               (error 'unencodable-character :char (char string i) :encoding :ascii))
+               (error 'unencodable-character :char (char string i) :encoding :ascii :position i))
              (setf (aref result (- i start)) code))
     result))
 

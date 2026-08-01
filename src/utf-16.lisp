@@ -59,9 +59,11 @@ next-index)."
     (loop for i from start below end
           for code = (char-code (char string i))
           do (when (<= #xD800 code #xDFFF)
-               (error 'unencodable-character :char (char string i) :encoding encoding-name))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name
+                                             :position i))
              (when (> code #x10FFFF)
-               (error 'unencodable-character :char (char string i) :encoding encoding-name))
+               (error 'unencodable-character :char (char string i) :encoding encoding-name
+                                             :position i))
              (incf size (* 2 (%u16-code-unit-count code))))
     (let ((result (make-array size :element-type '(unsigned-byte 8)))
           (offset 0))
