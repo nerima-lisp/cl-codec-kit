@@ -70,14 +70,12 @@ excludes entirely since they could only ever start an overlong 2-byte sequence"
         (string-to-octets (string (code-char #xD800)) :encoding :utf-8)))
 
   (it ":ERRORP NIL replaces each bad byte and keeps decoding"
-    ;; The default replacement is #x1A (SUB, a non-printing control
-    ;; character); comparing its CHAR-CODE rather than embedding it in a
-    ;; literal string keeps a failing expectation's printed diff free of a
-    ;; raw control byte.
+    ;; UTF-8's default replacement is U+FFFD, not #x1A -- see the
+    ;; per-encoding table in registry-test.lisp for why.
     (let ((result (octets-to-string (octets #x41 #x80 #x42) :encoding :utf-8 :errorp nil)))
       (expect (length result) :to-be 3)
       (expect (char result 0) :to-be #\A)
-      (expect (char-code (char result 1)) :to-be #x1a)
+      (expect (char result 1) :to-be #\REPLACEMENT_CHARACTER)
       (expect (char result 2) :to-be #\B))
     (expect (octets-to-string (octets #x41 #x80 #x42) :encoding :utf-8 :errorp nil
                               :replacement #\?)

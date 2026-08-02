@@ -38,7 +38,27 @@
   ;; point large enough to signal CODE-POINT-TOO-LARGE somewhere neither
   ;; function's HANDLER-CASE is written to catch. Both refuse a
   ;; BOM-SENSING-P encoding up front instead.
-  (bom-sensing-p nil :type boolean :read-only t))
+  (bom-sensing-p nil :type boolean :read-only t)
+  ;; The character OCTETS-TO-STRING, STRING-TO-OCTETS (api.lisp), and
+  ;; LENIENT-DECODE-PREFIX (streaming.lisp) substitute when the caller asks
+  ;; for lenient behavior without naming a :REPLACEMENT of its own.
+  ;;
+  ;; This is per-encoding because babel's own substitution is per-encoding.
+  ;; babel's Unicode codecs pass +REPL+ (#xFFFD) to every DECODING-ERROR and
+  ;; ENCODING-ERROR call they make (enc-unicode.lisp: the constant at :33,
+  ;; used at :187, :193, :629, :633, :757, :777), while its single-octet
+  ;; codecs -- :ASCII and :ISO-8859-1 among them -- are built by
+  ;; DEFINE-UNIBYTE-DECODER/-ENCODER, whose HANDLE-ERROR passes
+  ;; +DEFAULT-SUBSTITUTION-CODE-POINT+ (#x1A, SUB) instead
+  ;; (encodings.lisp:370, :405, :430). babel's own ENC-DEFAULT-REPLACEMENT
+  ;; slot reads like it decides this, but no babel code path ever consults
+  ;; it -- it is exported metadata and nothing more.
+  ;;
+  ;; #x1A is also the only value that can work for :ASCII and :ISO-8859-1 in
+  ;; the encode direction: U+FFFD is representable in neither, so a U+FFFD
+  ;; default would make STRING-TO-OCTETS :ERRORP NIL propagate
+  ;; UNENCODABLE-CHARACTER for the replacement itself (see %LENIENT-ENCODE).
+  (default-replacement (code-char #x1a) :type character :read-only t))
 
 (defvar *encodings* (make-hash-table :test 'eq)
   "Maps every registered encoding keyword, including aliases, to its
@@ -48,17 +68,28 @@ CHARACTER-ENCODING. Populated by DEFINE-ENCODING; never mutated elsewhere.")
   "The encoding OCTETS-TO-STRING, STRING-TO-OCTETS, STRING-SIZE-IN-OCTETS, and
 DECODE-PREFIX use when their :ENCODING argument is not supplied.")
 
-(defmacro define-encoding (name (&key aliases (resync-width 1) bom-sensing-p) &key decoder encoder)
+(defmacro define-encoding (name (&key aliases (resync-width 1) bom-sensing-p
+                                       (default-replacement '(code-char #x1a)))
+                           &key decoder encoder)
   "Register NAME (and each of ALIASES) as a CHARACTER-ENCODING backed by
-DECODER and ENCODER, both already-defined function names, RESYNC-WIDTH, and
-BOM-SENSING-P (see the CHARACTER-ENCODING slots of the same names; both
-default to values correct for a byte-oriented, fixed-order encoding).
+DECODER and ENCODER, both already-defined function names, RESYNC-WIDTH,
+BOM-SENSING-P, and DEFAULT-REPLACEMENT (see the CHARACTER-ENCODING slots of
+the same names; all three default to values correct for a byte-oriented,
+fixed-order, non-Unicode encoding).
+
+DEFAULT-REPLACEMENT defaults to #x1A (SUB) rather than U+FFFD deliberately:
+that is the fallback babel's single-octet codecs take, and the encodings
+still unimplemented here (the ISO-8859-2..16, Windows code page, EBCDIC, and
+KOI8 families -- see docs/src/project/roadmap.md) are all of that kind. Only
+a Unicode-family encoding, which can represent U+FFFD, overrides it.
+
 Re-registering an existing NAME replaces it -- loading this file's
 definitions in :SERIAL order is what makes each encoding file independent of
 load order among the others."
   `(let ((encoding (%make-character-encoding :name ,name :decoder #',decoder :encoder #',encoder
                                               :resync-width ,resync-width
-                                              :bom-sensing-p ,bom-sensing-p)))
+                                              :bom-sensing-p ,bom-sensing-p
+                                              :default-replacement ,default-replacement)))
      (dolist (designator (list* ,name ',aliases))
        (setf (gethash designator *encodings*) encoding))
      ,name))

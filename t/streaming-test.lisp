@@ -83,7 +83,7 @@
   (it "replaces a genuinely invalid sequence and keeps decoding past it, unlike DECODE-PREFIX"
     (multiple-value-bind (string leftover)
         (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :utf-8)
-      (expect string :to-equal (format nil "a~Cb" (code-char #x1a)))
+      (expect string :to-equal (format nil "a~Cb" #\REPLACEMENT_CHARACTER))
       (expect (length leftover) :to-be 0)))
 
   (it "honors a custom :REPLACEMENT character"
@@ -91,6 +91,17 @@
         (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :utf-8 :replacement #\?)
       (expect string :to-equal "a?b")
       (expect (length leftover) :to-be 0)))
+
+  (it "takes its default REPLACEMENT from the encoding, not from a single constant"
+    ;; The same call shape under two encodings must substitute two different
+    ;; characters -- U+FFFD under UTF-8, #x1A (SUB) under ASCII, which cannot
+    ;; represent U+FFFD at all. OCTETS-TO-STRING's own version of this is in
+    ;; api-test.lisp; this pins that LENIENT-DECODE-PREFIX resolves the
+    ;; default the same way rather than keeping a constant of its own.
+    (expect (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :utf-8)
+            :to-equal (format nil "a~Cb" #\REPLACEMENT_CHARACTER))
+    (expect (lenient-decode-prefix (octets #x61 #x80 #x62) :encoding :ascii)
+            :to-equal (format nil "a~Cb" (code-char #x1a))))
 
   (it "resumes by RESYNC-WIDTH octets, not one, after a mid-buffer error in a wide encoding"
     ;; An unpaired low surrogate as a lone UTF-16BE code unit is invalid, not
@@ -101,7 +112,7 @@
     ;; (api.lisp) was fixed for; LENIENT-DECODE-PREFIX must not reintroduce it.
     (multiple-value-bind (string leftover)
         (lenient-decode-prefix (octets #x00 #x61 #xDC #x00 #x00 #x62) :encoding :utf-16be)
-      (expect string :to-equal (format nil "a~Cb" (code-char #x1a)))
+      (expect string :to-equal (format nil "a~Cb" #\REPLACEMENT_CHARACTER))
       (expect (length leftover) :to-be 0)))
 
   (it "signals STREAMING-UNSAFE-ENCODING for the generic, BOM-sensing designators"

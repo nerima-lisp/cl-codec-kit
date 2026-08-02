@@ -9,7 +9,9 @@ The Unicode encoding family, plus the two simplest legacy encodings:
 - `decode-prefix`: an encoding-generic streaming partial-decode primitive
   babel itself does not provide (see the [home page](../index.md))
 - A package-specific condition hierarchy with position-based introspection
-- Lenient decoding (`:errorp nil`) with a configurable replacement character
+- Lenient decoding (`:errorp nil`) with a configurable replacement character,
+  defaulting per encoding the way babel's own codecs substitute (see
+  [the API reference](../reference/api.md#the-default-replacement-is-per-encoding))
 
 This set covers every encoding actually used today across `cl-tmux`,
 `cl-tty-kit`, and `cl-process-kit` (all UTF-8 only), plus the rest of the
@@ -35,9 +37,12 @@ would be transcribed from a reference source rather than genuinely
 implemented from first principles, and none has a current consumer in this
 org. Adding one needs: a new `src/<encoding>.lisp` file that calls
 `define-encoding` (see `src/registry.lisp`) with the correct `:resync-width`
-(1 for byte-oriented, or the fixed code-unit width in octets otherwise) and
+(1 for byte-oriented, or the fixed code-unit width in octets otherwise),
 `:bom-sensing-p` (only for a *generic*, byte-order-sensing designator --
 see [Streaming and generic encodings](../reference/conditions.md#streaming-and-generic-encodings)),
+and `:default-replacement` (omit it for every encoding listed above: they are
+all single-octet encodings, for which babel substitutes `#x1A`, and none can
+represent U+FFFD anyway),
 following the shape of `src/ascii.lisp`/`src/iso-8859-1.lisp` for a
 fixed-width encoding or `src/utf-8.lisp` for a variable-width one; and an
 entry in `cl-codec-kit.asd`'s `:components` list, in `:serial` load order

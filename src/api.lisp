@@ -8,59 +8,46 @@
 
 (defun %lenient-decode (encoding-struct octets start end replacement)
   "Decode OCTETS[START,END) with ENCODING-STRUCT, substituting REPLACEMENT
-for each invalid or truncated sequence instead of signaling. Every decoder in
-this library only ever signals a DECODE-ERROR (conditions.lisp) at the start
-of the character it is currently failing on, so OCTETS[INDEX,POSITION) is
-always exactly what the current attempt had already, successfully, decoded
-before hitting it -- redecoding that prefix from scratch is guaranteed to
-succeed, never re-signal, and never desynchronize a fixed-width encoding's
-remaining code units, because resuming from POSITION by RESYNC-WIDTH (not by
-one octet) always lands back on a unit boundary.
+for each invalid or truncated sequence instead of signaling, via
+%DECODE-WITH-RECOVERY (streaming.lisp). Every decoder in this library only
+ever signals a DECODE-ERROR (conditions.lisp) at the start of the character
+it is currently failing on, so OCTETS[INDEX,POSITION) is always exactly what
+the current attempt had already, successfully, decoded before hitting it --
+redecoding that prefix from scratch is guaranteed to succeed, never
+re-signal, and never desynchronize a fixed-width encoding's remaining code
+units, because resuming from POSITION by RESYNC-WIDTH (not by one octet)
+always lands back on a unit boundary.
 
-TRUNCATED-SEQUENCE is handled separately from every other DECODE-ERROR
-subtype, and must be checked first since it is itself a DECODE-ERROR
-subtype: by TRUNCATED-SEQUENCE's own contract (conditions.lisp), its
-POSITION only ever names a leading byte/unit that runs off the true END of
-OCTETS -- there is no more data that could complete it -- so the whole
-remaining OCTETS[POSITION,END) is one malformed attempt, replaced once and
-consumed entirely, rather than resuming by RESYNC-WIDTH and re-attempting
-the leftover bytes as further, spurious ones.
+A TRUNCATED-SEQUENCE gets exactly one REPLACEMENT for the whole remaining
+OCTETS[POSITION,END), never a RESYNC-WIDTH-at-a-time resumption into it:
+unlike LENIENT-DECODE-PREFIX's caller (streaming.lisp), this function's
+caller has no later chunk that could complete a truncated sequence, so
+treating its remaining bytes as further, spurious ones would be wrong.
 
 ENCODING-STRUCT must not be BOM-sensing (see CHARACTER-ENCODING-BOM-SENSING-P
 in registry.lisp); OCTETS-TO-STRING checks this before calling here."
-  (let ((resync-width (character-encoding-resync-width encoding-struct)))
+  (let ((resync-width (character-encoding-resync-width encoding-struct))
+        (decoder (character-encoding-decoder encoding-struct)))
     (with-output-to-string (out)
-      (let ((index start))
-        (loop while (< index end)
-              do (handler-case
-                     (progn
-                       (write-string (funcall (character-encoding-decoder encoding-struct)
-                                               octets index end)
-                                     out)
-                       (setf index end))
-                   (truncated-sequence (c)
-                     (let ((position (decode-error-position c)))
-                       (write-string (funcall (character-encoding-decoder encoding-struct)
-                                               octets index position)
-                                     out)
-                       (write-char replacement out)
-                       (setf index end)))
-                   (decode-error (c)
-                     (let ((position (decode-error-position c)))
-                       (write-string (funcall (character-encoding-decoder encoding-struct)
-                                               octets index position)
-                                     out)
-                       (write-char replacement out)
-                       (setf index (+ position resync-width))))))))))
+      (%decode-with-recovery decoder octets start end resync-width replacement out
+                             (lambda (position)
+                               (declare (ignore position))
+                               (write-char replacement out))))))
 
 (defun octets-to-string (octets &key (start 0) end (encoding *default-encoding*)
-                                (errorp t) (replacement (code-char #x1a)))
+                                (errorp t) replacement)
   "Decode OCTETS[START,END) (default the whole vector) as ENCODING into a
 string. When ERRORP is true (the default), an invalid or truncated sequence
 signals the corresponding condition from conditions.lisp. When ERRORP is
 NIL, each invalid or truncated sequence is instead replaced by REPLACEMENT
-and decoding continues -- REPLACEMENT defaults to #x1A (SUB), matching
-babel's own ENC-DEFAULT-REPLACEMENT default rather than U+FFFD.
+and decoding continues.
+
+REPLACEMENT NIL (the default) means ENCODING's own
+CHARACTER-ENCODING-DEFAULT-REPLACEMENT (registry.lisp): U+FFFD for every
+Unicode-family encoding registered here, U+001A (SUB) for :ASCII and
+:ISO-8859-1. That split is babel's, taken from where babel actually makes it
+-- the substitution code point its codecs pass to DECODING-ERROR -- and not
+from its ENC-DEFAULT-REPLACEMENT slot, which no babel code path reads.
 
 A single ERRORP T call is safe for every registered encoding, including the
 generic, BOM-sensing :UTF-16/:UTF-32/:UCS-2 (it decodes OCTETS once, so a
@@ -70,7 +57,8 @@ the same reason DECODE-PREFIX (streaming.lisp) does: recovering from an
 error resumes decoding at an interior offset, where a BOM-sensing decoder
 would wrongly re-check for a byte-order mark."
   (let* ((enc (find-character-encoding encoding))
-         (end (or end (length octets))))
+         (end (or end (length octets)))
+         (replacement (or replacement (character-encoding-default-replacement enc))))
     (if errorp
         (funcall (character-encoding-decoder enc) octets start end)
         (progn
@@ -102,16 +90,22 @@ looping."
       (apply #'concatenate '(vector (unsigned-byte 8)) (nreverse chunks)))))
 
 (defun string-to-octets (string &key (start 0) end (encoding *default-encoding*)
-                                (errorp t) (replacement (code-char #x1a)))
+                                (errorp t) replacement)
   "Encode STRING[START,END) (default the whole string) as ENCODING into a
 fresh (UNSIGNED-BYTE 8) vector. When ERRORP is true (the default), a
 character ENCODING cannot represent signals UNENCODABLE-CHARACTER. When
 ERRORP is NIL, each unencodable character is instead replaced by
-REPLACEMENT's own encoding and encoding continues -- REPLACEMENT defaults to
-#x1A (SUB), representable in every encoding this library registers, matching
-OCTETS-TO-STRING's own default and babel's ENC-DEFAULT-REPLACEMENT."
+REPLACEMENT's own encoding and encoding continues.
+
+REPLACEMENT NIL (the default) means ENCODING's own
+CHARACTER-ENCODING-DEFAULT-REPLACEMENT, exactly as in OCTETS-TO-STRING:
+U+FFFD for the Unicode family, U+001A (SUB) for :ASCII and :ISO-8859-1.
+Every encoding's default is representable in that encoding, so the default
+never trips the propagate-rather-than-loop case in %LENIENT-ENCODE; an
+explicit REPLACEMENT still can."
   (let* ((enc (find-character-encoding encoding))
-         (end (or end (length string))))
+         (end (or end (length string)))
+         (replacement (or replacement (character-encoding-default-replacement enc))))
     (if errorp
         (funcall (character-encoding-encoder enc) string start end)
         (%lenient-encode enc string start end replacement))))

@@ -39,5 +39,5 @@
     (let ((result (octets-to-string (octets #x00 #x11 #x00 #x00 #x00 #x00 #x00 #x42)
                                     :encoding :utf-32be :errorp nil)))
       (expect (length result) :to-be 2)
-      (expect (char-code (char result 0)) :to-be #x1a)
+      (expect (char result 0) :to-be #\REPLACEMENT_CHARACTER)
       (expect (char result 1) :to-be #\B))))

@@ -66,9 +66,9 @@ past END. Returns (values character next-index)."
                                (logand (aref octets (+ index 3)) #x3F))))))
             (when (< code-point (%utf8-min-code-point length))
               (error 'overlong-sequence :position index))
-            (when (<= #xD800 code-point #xDFFF)
+            (when (surrogate-code-point-value-p code-point)
               (error 'surrogate-code-point :position index :value code-point))
-            (when (> code-point #x10FFFF)
+            (when (> code-point +max-code-point+)
               (error 'code-point-too-large :position index :value code-point))
             (values (code-char code-point) (+ index length)))))))
 
@@ -86,10 +86,10 @@ UNENCODABLE-CHARACTER for a surrogate half or an out-of-range code point."
   (cond
     ((< code-point #x80) 1)
     ((< code-point #x800) 2)
-    ((<= #xD800 code-point #xDFFF)
+    ((surrogate-code-point-value-p code-point)
      (error 'unencodable-character :char char :encoding :utf-8 :position position))
     ((< code-point #x10000) 3)
-    ((<= code-point #x10FFFF) 4)
+    ((<= code-point +max-code-point+) 4)
     (t (error 'unencodable-character :char char :encoding :utf-8 :position position))))
 
 (defun utf-8-encode (string start end)
@@ -121,6 +121,6 @@ UNENCODABLE-CHARACTER for a surrogate half or an out-of-range code point."
                   (incf offset 4))))
       result)))
 
-(define-encoding :utf-8 ()
+(define-encoding :utf-8 (:default-replacement #\REPLACEMENT_CHARACTER)
   :decoder utf-8-decode
   :encoder utf-8-encode)

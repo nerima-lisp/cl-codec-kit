@@ -18,6 +18,11 @@
    #:*default-encoding*
    #:list-character-encodings
    #:find-character-encoding
+   ;; The one CHARACTER-ENCODING slot that is part of the public contract:
+   ;; it is the value OCTETS-TO-STRING/STRING-TO-OCTETS/LENIENT-DECODE-PREFIX
+   ;; substitute when :REPLACEMENT is omitted. Returns a CHARACTER, where
+   ;; babel's similarly-named ENC-DEFAULT-REPLACEMENT returns a code point.
+   #:character-encoding-default-replacement
 
    ;; Conditions
    #:cl-codec-kit-error

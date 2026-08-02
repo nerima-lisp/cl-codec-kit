@@ -22,4 +22,7 @@
              (setf (aref result (- i start)) code))
     result))
 
+;; No :DEFAULT-REPLACEMENT: ASCII takes DEFINE-ENCODING's own #x1A (SUB)
+;; default, which is both what babel's single-octet codecs substitute and the
+;; only choice encodable here -- U+FFFD is outside this codespace entirely.
 (define-encoding :ascii (:aliases (:us-ascii)) :decoder ascii-decode :encoder ascii-encode)

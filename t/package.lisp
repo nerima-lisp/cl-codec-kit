@@ -3,12 +3,13 @@
   (:shadowing-import-from #:cl-weave #:describe)
   (:import-from #:cl-weave
    #:it #:expect #:signals #:run-all
-   #:it-property #:gen-integer #:gen-list #:gen-boolean #:gen-map #:gen-such-that)
+   #:it-property #:it-fuzz #:gen-integer #:gen-list #:gen-map #:gen-vector #:gen-member
+   #:gen-such-that #:describe-each #:run-mutations #:assert-mutation-score)
   (:import-from #:cl-codec-kit
    #:octets-to-string #:string-to-octets #:string-size-in-octets #:decode-prefix
    #:lenient-decode-prefix
    #:*default-encoding* #:list-character-encodings
-   #:find-character-encoding
+   #:find-character-encoding #:character-encoding-default-replacement
    #:cl-codec-kit-error #:decode-error #:decode-error-position
    #:unsupported-encoding #:unsupported-encoding-designator
    #:streaming-unsafe-encoding #:streaming-unsafe-encoding-designator
@@ -40,10 +41,27 @@ that need a BMP-only range for UCS-2/UTF-16 pass :MAX #xFFFF."
   (gen-map (lambda (codes) (coerce (mapcar #'code-char codes) 'string))
            (gen-list (gen-scalar-value :max max) :min-length min-length :max-length max-length)))
 
-(defun run-tests ()
+(defun gen-octets (&key (min-length 0) (max-length 16))
+  "A generator of arbitrary (UNSIGNED-BYTE 8) vectors, valid or not -- for
+fuzzing a decoder against every possible byte sequence rather than only the
+hand-picked invalid ones each FOO-test.lisp already exercises by name."
+  (gen-map (lambda (bytes) (apply #'octets bytes))
+           (gen-list (gen-integer :min 0 :max 255) :min-length min-length :max-length max-length)))
+
+(defun run-tests (&key coverage)
   "Run every registered spec, signalling on any failure so ASDF's TEST-OP
-fails."
-  (unless (run-all :reporter :spec :timeout-ms 20000)
+fails. COVERAGE, off by default so a plain local/CI run stays fast and
+artifact-free, enables cl-weave's built-in SB-COVER integration and writes an
+HTML report to coverage-report/ plus a summary to cl-codec-kit.coverage in
+the current directory -- see docs/src/getting-started.md for how to read it."
+  (unless (run-all :reporter :spec :timeout-ms 20000
+                   :coverage coverage
+                   :coverage-output (and coverage "cl-codec-kit.coverage")
+                   :coverage-report-directory (and coverage "coverage-report/")
+                   :coverage-include-pathnames
+                   (and coverage
+                        (list (merge-pathnames "src/"
+                                                (asdf:system-source-directory "cl-codec-kit")))))
     (error "cl-codec-kit test suite failed"))
   (format t "~&cl-codec-kit/test: successful completion with 0 failures~%")
   t)

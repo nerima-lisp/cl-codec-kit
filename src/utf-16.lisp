@@ -4,10 +4,17 @@
 ;;;; comes first, so %U16-DECODE and %U16-ENCODE take the byte order as a
 ;;;; keyword and every other function -- surrogate-pair assembly, code-unit
 ;;;; splitting -- is shared. Generic :UTF-16 senses a byte-order mark (BOM) on
-;;;; decode and strips it; on encode it always writes a big-endian BOM
-;;;; followed by big-endian content, since Unicode's own spec states
-;;;; big-endian as the default assumption for UTF-16 in the absence of a BOM.
+;;;; decode and strips it via BOM-SENSING-DECODE (unicode.lisp); on encode it
+;;;; always writes a big-endian BOM followed by big-endian content, since
+;;;; Unicode's own spec states big-endian as the default assumption for
+;;;; UTF-16 in the absence of a BOM.
 (in-package #:cl-codec-kit)
+
+(defparameter *utf-16-bom-be* #(#xFE #xFF)
+  "UTF-16's big-endian byte-order mark. UCS-2 (ucs-2.lisp) reuses this: both
+encodings share the same 16-bit code-unit layout and the same BOM.")
+(defparameter *utf-16-bom-le* #(#xFF #xFE)
+  "UTF-16's little-endian byte-order mark. See *UTF-16-BOM-BE*.")
 
 (defun %u16-read (octets index byte-order)
   (ecase byte-order
@@ -58,10 +65,7 @@ next-index)."
   (let ((size 0))
     (loop for i from start below end
           for code = (char-code (char string i))
-          do (when (<= #xD800 code #xDFFF)
-               (error 'unencodable-character :char (char string i) :encoding encoding-name
-                                             :position i))
-             (when (> code #x10FFFF)
+          do (when (or (surrogate-code-point-value-p code) (> code +max-code-point+))
                (error 'unencodable-character :char (char string i) :encoding encoding-name
                                              :position i))
              (incf size (* 2 (%u16-code-unit-count code))))
@@ -79,29 +83,19 @@ next-index)."
                      (incf offset 4))))
       result)))
 
-(defun utf-16be-decode (octets start end) (%u16-decode octets start end :be))
-(defun utf-16be-encode (string start end) (%u16-encode string start end :be :utf-16be))
-(defun utf-16le-decode (octets start end) (%u16-decode octets start end :le))
-(defun utf-16le-encode (string start end) (%u16-encode string start end :le :utf-16le))
+(define-byte-order-encoding utf-16 (:aliases-be (:utf-16/be) :aliases-le (:utf-16/le)
+                                     :resync-width 2 :default-replacement #\REPLACEMENT_CHARACTER)
+  :core-decoder %u16-decode :core-encoder %u16-encode)
 
 (defun utf-16-decode (octets start end)
   "Generic UTF-16: senses a BOM (FE FF for big-endian, FF FE for
 little-endian) and strips it; defaults to big-endian when no BOM is present."
-  (if (>= (- end start) 2)
-      (let ((first (aref octets start)) (second (aref octets (1+ start))))
-        (cond
-          ((and (= first #xFE) (= second #xFF)) (utf-16be-decode octets (+ start 2) end))
-          ((and (= first #xFF) (= second #xFE)) (utf-16le-decode octets (+ start 2) end))
-          (t (utf-16be-decode octets start end))))
-      (utf-16be-decode octets start end)))
+  (bom-sensing-decode octets start end *utf-16-bom-be* *utf-16-bom-le*
+                       #'utf-16be-decode #'utf-16le-decode))
 
 (defun utf-16-encode (string start end)
-  (let ((body (utf-16be-encode string start end)))
-    (concatenate '(vector (unsigned-byte 8)) #(#xFE #xFF) body)))
+  (bom-sensing-encode *utf-16-bom-be* #'utf-16be-encode string start end))
 
-(define-encoding :utf-16be (:aliases (:utf-16/be) :resync-width 2)
-  :decoder utf-16be-decode :encoder utf-16be-encode)
-(define-encoding :utf-16le (:aliases (:utf-16/le) :resync-width 2)
-  :decoder utf-16le-decode :encoder utf-16le-encode)
-(define-encoding :utf-16 (:resync-width 2 :bom-sensing-p t)
+(define-encoding :utf-16 (:resync-width 2 :bom-sensing-p t
+                          :default-replacement #\REPLACEMENT_CHARACTER)
   :decoder utf-16-decode :encoder utf-16-encode)

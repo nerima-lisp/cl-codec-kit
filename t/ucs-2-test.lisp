@@ -27,5 +27,5 @@
   (it ":ERRORP NIL resyncs by whole 2-octet code units, not by one octet"
     (let ((result (octets-to-string (octets #xD8 #x00 #x00 #x42) :encoding :ucs-2be :errorp nil)))
       (expect (length result) :to-be 2)
-      (expect (char-code (char result 0)) :to-be #x1a)
+      (expect (char result 0) :to-be #\REPLACEMENT_CHARACTER)
       (expect (char result 1) :to-be #\B))))
