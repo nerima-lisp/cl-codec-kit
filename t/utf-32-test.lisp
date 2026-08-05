@@ -9,10 +9,7 @@
         (expect (octets-to-string (string-to-octets s :encoding encoding) :encoding encoding)
                 :to-equal s))))
 
-  (it-property "round-trips any scalar-value string through BE, for any length"
-      ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))
-    (expect (octets-to-string (string-to-octets values :encoding :utf-32be) :encoding :utf-32be)
-            :to-equal values))
+  (it-round-trips :utf-32be)
 
   (it "encodes a code point as 4 big-endian octets"
     ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
@@ -36,8 +33,9 @@
     (signals truncated-sequence (octets-to-string (octets #x00 #x00 #x00) :encoding :utf-32be)))
 
   (it ":ERRORP NIL resyncs by whole 4-octet code units, not by one octet"
-    (let ((result (octets-to-string (octets #x00 #x11 #x00 #x00 #x00 #x00 #x00 #x42)
-                                    :encoding :utf-32be :errorp nil)))
-      (expect (length result) :to-be 2)
-      (expect (char result 0) :to-be #\REPLACEMENT_CHARACTER)
-      (expect (char result 1) :to-be #\B))))
+    (with-soft-assertions
+      (let ((result (octets-to-string (octets #x00 #x11 #x00 #x00 #x00 #x00 #x00 #x42)
+                                      :encoding :utf-32be :errorp nil)))
+        (expect (length result) :to-be 2)
+        (expect (char result 0) :to-be #\REPLACEMENT_CHARACTER)
+        (expect (char result 1) :to-be #\B)))))

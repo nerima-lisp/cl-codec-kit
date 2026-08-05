@@ -9,10 +9,7 @@
         (expect (octets-to-string (string-to-octets s :encoding encoding) :encoding encoding)
                 :to-equal s))))
 
-  (it-property "round-trips any BMP+supplementary string through BE, for any length"
-      ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))
-    (expect (octets-to-string (string-to-octets values :encoding :utf-16be) :encoding :utf-16be)
-            :to-equal values))
+  (it-round-trips :utf-16be)
 
   (it "encodes a supplementary-plane character as a surrogate pair, big-endian"
     ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
@@ -51,7 +48,8 @@
     ;; leftover octet -- advancing by the wrong stride here would decode
     ;; #x0000 as a spurious extra character. This is the scenario that made
     ;; :RESYNC-WIDTH necessary on CHARACTER-ENCODING (registry.lisp).
-    (let ((result (octets-to-string (octets #x00 #x41 #xD8 #x00) :encoding :utf-16be :errorp nil)))
-      (expect (length result) :to-be 2)
-      (expect (char result 0) :to-be #\A)
-      (expect (char result 1) :to-be #\REPLACEMENT_CHARACTER))))
+    (with-soft-assertions
+      (let ((result (octets-to-string (octets #x00 #x41 #xD8 #x00) :encoding :utf-16be :errorp nil)))
+        (expect (length result) :to-be 2)
+        (expect (char result 0) :to-be #\A)
+        (expect (char result 1) :to-be #\REPLACEMENT_CHARACTER)))))

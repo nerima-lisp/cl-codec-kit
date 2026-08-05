@@ -41,6 +41,7 @@ implemented; see docs/src/project/roadmap.md."
    (:file "utf-16")
    (:file "utf-32")
    (:file "ucs-2")
+   (:file "single-octet")
    (:file "ascii")
    (:file "iso-8859-1")
    (:file "streaming")

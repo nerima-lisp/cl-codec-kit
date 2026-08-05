@@ -8,10 +8,7 @@
       (expect (octets-to-string (string-to-octets s :encoding :utf-8) :encoding :utf-8)
               :to-equal s)))
 
-  (it-property "round-trips any string built from scalar values, for any length"
-      ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))
-    (expect (octets-to-string (string-to-octets values :encoding :utf-8) :encoding :utf-8)
-            :to-equal values))
+  (it-round-trips :utf-8)
 
   (it "encodes known code points to their documented UTF-8 byte sequences"
     ;; :TO-EQUAL is CL:EQUAL, which does not descend (UNSIGNED-BYTE 8)

@@ -28,6 +28,14 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # The structural-refactoring CLI contributors run by hand. Consumed only
+    # as an interactive devShell package, never as a Lisp dependency.
+    paredit-cli = {
+      url = "github:nerima-lisp/paredit-cli/v1.4.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
   };
 
   outputs =
@@ -37,6 +45,7 @@
       cl-nix-forge,
       cl-weave,
       treefmt-nix,
+      paredit-cli,
       ...
     }:
     let
@@ -73,6 +82,22 @@
       lispCheckDependencies = ctx: [ cl-weave.packages.${ctx.system}.cl-weave ];
 
       docs.root = ./docs;
+
+      # Interactive-only: pulled into `nix develop`'s PATH via `mkDevShell`'s
+      # `extraPackages`, never into the build (`lispDependencies`/
+      # `lispCheckDependencies` above are what those actually gate).
+      #
+      # `lib.optional` guards `aarch64-darwin`: paredit-cli's v1.4.0 tag only
+      # publishes `packages.x86_64-linux` (aarch64-darwin support landed on
+      # its default branch after that tag was cut) -- an unconditional
+      # reference here would make `nix develop`/`nix flake check` fail on
+      # the development machine specifically. Drop this guard once a
+      # paredit-cli tag ships aarch64-darwin packages.
+      devShellPackages =
+        ctx:
+        nixpkgs.lib.optional (
+          paredit-cli.packages ? ${ctx.system}
+        ) paredit-cli.packages.${ctx.system}.default;
 
       # PACKAGE_STANDARD.md scopes treefmt to Nix and only Nix (the default
       # module mkPackageFlake applies when `module` is omitted): a YAML

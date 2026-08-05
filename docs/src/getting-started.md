@@ -17,13 +17,20 @@ sbcl --script run-tests.lisp
 expects a sibling `../cl-weave/` checkout (the test system's only
 dependency; see `cl-codec-kit.asd`). To also measure coverage with SBCL's
 `sb-cover` -- cl-weave's own built-in integration, not a hand-rolled setup --
-pass `:coverage t` to `cl-codec-kit/test:run-tests` instead of calling
-`run-tests.lisp` directly:
+pass `:coverage t` to `cl-codec-kit/test:run-tests`. SB-COVER only
+instruments code compiled *after* `sb-cover:store-coverage-data` is
+proclaimed, so this needs a fresh SBCL process with that proclaim in place
+before `cl-codec-kit` is compiled -- `run-tests.lisp` does not do this, and
+neither does simply calling `(asdf:load-system "cl-codec-kit/test")` in a
+process where the system was already loaded:
 
 ```lisp
-(asdf:load-system "cl-codec-kit/test")
+(require :asdf)
+(require :sb-cover)
+(declaim (optimize sb-cover:store-coverage-data))
+(asdf:load-system "cl-codec-kit/test" :force :all)
 (cl-codec-kit/test:run-tests :coverage t)
-;; writes coverage-report/index.html and cl-codec-kit.coverage
+;; writes coverage-report/cover-index.html and cl-codec-kit.coverage
 ```
 
 `:coverage` defaults to `nil` so a plain `sbcl --script run-tests.lisp` (and

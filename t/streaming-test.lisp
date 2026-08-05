@@ -10,23 +10,29 @@
 (describe
   "DECODE-PREFIX"
   (it "decodes the whole buffer with an empty leftover when it ends on a boundary"
-    (let ((octets (string-to-octets "café" :encoding :utf-8)))
-      (multiple-value-bind (string leftover) (decode-prefix octets :encoding :utf-8)
-        (expect string :to-equal "café")
-        (expect (length leftover) :to-be 0)
-        (expect (array-element-type leftover) :to-equal (array-element-type octets)))))
+    ;; WITH-SOFT-ASSERTIONS: these three EXPECTs are independent claims about
+    ;; the same call: a failure on the first (wrong string) says nothing
+    ;; about whether the other two (leftover length, leftover element type)
+    ;; also fail, so stopping at the first would hide that diagnostic.
+    (with-soft-assertions
+      (let ((octets (string-to-octets "café" :encoding :utf-8)))
+        (multiple-value-bind (string leftover) (decode-prefix octets :encoding :utf-8)
+          (expect string :to-equal "café")
+          (expect (length leftover) :to-be 0)
+          (expect (array-element-type leftover) :to-equal (array-element-type octets))))))
 
   (it "splits UTF-8 at the last complete character, leaving a truncated tail"
-    (let* ((full (string-to-octets "café" :encoding :utf-8))
-           (end (1- (length full))))
-      (multiple-value-bind (string leftover) (decode-prefix full :end end :encoding :utf-8)
-        (expect string :to-equal "caf")
-        (expect (length leftover) :to-be 1)
-        ;; LEFTOVER is FULL[END-(LENGTH LEFTOVER),END) -- the truncated
-        ;; character's own leading byte(s), not simply FULL's last octet
-        ;; (which would be wrong whenever END is not the buffer's own
-        ;; length, as it isn't here).
-        (expect leftover :to-equalp (subseq full (- end (length leftover)) end)))))
+    (with-soft-assertions
+      (let* ((full (string-to-octets "café" :encoding :utf-8))
+             (end (1- (length full))))
+        (multiple-value-bind (string leftover) (decode-prefix full :end end :encoding :utf-8)
+          (expect string :to-equal "caf")
+          (expect (length leftover) :to-be 1)
+          ;; LEFTOVER is FULL[END-(LENGTH LEFTOVER),END) -- the truncated
+          ;; character's own leading byte(s), not simply FULL's last octet
+          ;; (which would be wrong whenever END is not the buffer's own
+          ;; length, as it isn't here).
+          (expect leftover :to-equalp (subseq full (- end (length leftover)) end))))))
 
   (it "splits UTF-16 at a character boundary that falls mid-surrogate-pair"
     (let* ((full (string-to-octets "a😀" :encoding :utf-16be))

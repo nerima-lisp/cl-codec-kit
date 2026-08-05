@@ -8,6 +8,12 @@
 (in-package #:cl-codec-kit)
 
 (define-condition cl-codec-kit-error (error) ()
+  (:report (lambda (condition stream)
+             (declare (ignore condition))
+             (format stream "A cl-codec-kit error occurred. Every concrete ~
+subtype below reports more specifically than this base condition can -- ~
+seeing this exact message means something signaled CL-CODEC-KIT-ERROR ~
+directly rather than one of its subtypes.")))
   (:documentation "Base condition for every error CL-CODEC-KIT signals. Catch
 this to handle any failure from this library without naming each specific
 condition."))
@@ -16,6 +22,12 @@ condition."))
   ((position :initarg :position :reader decode-error-position
              :documentation "The octet index where the failing character
 starts."))
+  (:report (lambda (condition stream)
+             (format stream "A decode error occurred at octet position ~D. ~
+Every concrete subtype below reports more specifically than this base ~
+condition can -- seeing this exact message means something signaled ~
+DECODE-ERROR directly rather than one of its subtypes."
+                     (decode-error-position condition))))
   (:documentation "Base condition for every decode-time error that names a
 POSITION -- every condition below except UNSUPPORTED-ENCODING and
 UNENCODABLE-CHARACTER. Existing structurally, rather than as a convention

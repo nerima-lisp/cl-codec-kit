@@ -32,7 +32,8 @@ in registry.lisp); OCTETS-TO-STRING checks this before calling here."
       (%decode-with-recovery decoder octets start end resync-width replacement out
                              (lambda (position)
                                (declare (ignore position))
-                               (write-char replacement out))))))
+                               (write-char replacement out))
+                             (lambda ())))))
 
 (defun octets-to-string (octets &key (start 0) end (encoding *default-encoding*)
                                 (errorp t) replacement)

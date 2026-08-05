@@ -35,18 +35,29 @@ These are deferred rather than fabricated because most require large,
 hand-verified mapping tables (hundreds to thousands of entries each) that
 would be transcribed from a reference source rather than genuinely
 implemented from first principles, and none has a current consumer in this
-org. Adding one needs: a new `src/<encoding>.lisp` file that calls
-`define-encoding` (see `src/registry.lisp`) with the correct `:resync-width`
-(1 for byte-oriented, or the fixed code-unit width in octets otherwise),
-`:bom-sensing-p` (only for a *generic*, byte-order-sensing designator --
-see [Streaming and generic encodings](../reference/conditions.md#streaming-and-generic-encodings)),
-and `:default-replacement` (omit it for every encoding listed above: they are
-all single-octet encodings, for which babel substitutes `#x1A`, and none can
-represent U+FFFD anyway),
-following the shape of `src/ascii.lisp`/`src/iso-8859-1.lisp` for a
-fixed-width encoding or `src/utf-8.lisp` for a variable-width one; and an
-entry in `cl-codec-kit.asd`'s `:components` list, in `:serial` load order
-after `registry`.
+org. All are single-octet, for which babel substitutes `#x1A`, and none can
+represent U+FFFD anyway -- but ASCII and ISO-8859-1 are the only two whose
+codespace maps identity-style straight onto the matching Unicode code point;
+every other one needs a real, non-contiguous mapping table above the Basic
+Latin range that `define-single-octet-encoding` (`src/single-octet.lisp`)
+does not support. Adding one needs a new `src/<encoding>.lisp` file, plus an
+entry in `cl-codec-kit.asd`'s `:components` list in `:serial` load order
+after `registry`, and:
+
+- For a variable-width Unicode encoding: call `define-encoding` (see
+  `src/registry.lisp`) with the correct `:resync-width` (the fixed code-unit
+  width in octets) and `:bom-sensing-p` (only for a *generic*, byte-order-
+  sensing designator -- see [Streaming and generic encodings](../reference/conditions.md#streaming-and-generic-encodings)),
+  following the shape of `src/utf-8.lisp`.
+- For a single-octet encoding whose codespace maps identically onto Unicode
+  (none remain unimplemented after ASCII/ISO-8859-1): call
+  `define-single-octet-encoding` directly, following the shape of
+  `src/ascii.lisp`/`src/iso-8859-1.lisp`.
+- For a single-octet encoding with a real mapping table (every ISO-8859-N
+  above -1, the Windows code pages, EBCDIC, KOI8): call `define-encoding`
+  directly with a decoder/encoder built around that table -- there is no
+  shared macro for this shape yet, since no encoding implemented so far has
+  needed one.
 
 ## Planned follow-up work (outside this repository)
 

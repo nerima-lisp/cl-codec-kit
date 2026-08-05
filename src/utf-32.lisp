@@ -10,19 +10,19 @@
 
 (defun %u32-read (octets index byte-order)
   (ecase byte-order
-    (:be (logior (ash (aref octets index) 24) (ash (aref octets (+ index 1)) 16)
+    (:be (logior (ash (aref octets index) 24) (ash (aref octets (1+ index)) 16)
                  (ash (aref octets (+ index 2)) 8) (aref octets (+ index 3))))
-    (:le (logior (aref octets index) (ash (aref octets (+ index 1)) 8)
+    (:le (logior (aref octets index) (ash (aref octets (1+ index)) 8)
                  (ash (aref octets (+ index 2)) 16) (ash (aref octets (+ index 3)) 24)))))
 
 (defun %u32-write (code-point result offset byte-order)
   (ecase byte-order
     (:be (setf (aref result offset) (ldb (byte 8 24) code-point)
-               (aref result (+ offset 1)) (ldb (byte 8 16) code-point)
+               (aref result (1+ offset)) (ldb (byte 8 16) code-point)
                (aref result (+ offset 2)) (ldb (byte 8 8) code-point)
                (aref result (+ offset 3)) (ldb (byte 8 0) code-point)))
     (:le (setf (aref result offset) (ldb (byte 8 0) code-point)
-               (aref result (+ offset 1)) (ldb (byte 8 8) code-point)
+               (aref result (1+ offset)) (ldb (byte 8 8) code-point)
                (aref result (+ offset 2)) (ldb (byte 8 16) code-point)
                (aref result (+ offset 3)) (ldb (byte 8 24) code-point)))))
 

@@ -8,10 +8,7 @@
                               :encoding :ascii)
             :to-equal "Hello, World! 123"))
 
-  (it-property "round-trips any 7-bit string, for any length"
-      ((values (gen-scalar-string :max #x7F :min-length 0 :max-length 32)))
-    (expect (octets-to-string (string-to-octets values :encoding :ascii) :encoding :ascii)
-            :to-equal values))
+  (it-round-trips :ascii :max #x7F :max-length 32)
 
   (it "signals INVALID-LEADING-BYTE on any octet above #x7F"
     (signals invalid-leading-byte (octets-to-string (octets #x80) :encoding :ascii)))

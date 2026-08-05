@@ -2,9 +2,10 @@
 (defpackage #:cl-codec-kit/test (:use #:cl)
   (:shadowing-import-from #:cl-weave #:describe)
   (:import-from #:cl-weave
-   #:it #:expect #:signals #:run-all
+   #:it #:it-each #:expect #:signals #:run-all
    #:it-property #:it-fuzz #:gen-integer #:gen-list #:gen-map #:gen-vector #:gen-member
-   #:gen-such-that #:describe-each #:run-mutations #:assert-mutation-score)
+   #:gen-such-that #:describe-each #:run-mutations #:assert-mutation-score
+   #:with-soft-assertions)
   (:import-from #:cl-codec-kit
    #:octets-to-string #:string-to-octets #:string-size-in-octets #:decode-prefix
    #:lenient-decode-prefix
@@ -47,6 +48,17 @@ fuzzing a decoder against every possible byte sequence rather than only the
 hand-picked invalid ones each FOO-test.lisp already exercises by name."
   (gen-map (lambda (bytes) (apply #'octets bytes))
            (gen-list (gen-integer :min 0 :max 255) :min-length min-length :max-length max-length)))
+
+(defmacro it-round-trips (encoding &key (max #x10FFFF) (min-length 0) (max-length 24))
+  "Register an IT-PROPERTY spec asserting that OCTETS-TO-STRING/STRING-TO-OCTETS
+round-trip any string GEN-SCALAR-STRING can build within MAX/MIN-LENGTH/
+MAX-LENGTH under ENCODING (an unquoted keyword). Factors out the round-trip
+property test every FOO-test.lisp in this directory otherwise repeats
+verbatim, differing only in these three arguments."
+  `(it-property ,(format nil "round-trips any string up to U+~4,'0X, for any length" max)
+       ((values (gen-scalar-string :max ,max :min-length ,min-length :max-length ,max-length)))
+     (expect (octets-to-string (string-to-octets values :encoding ,encoding) :encoding ,encoding)
+             :to-equal values)))
 
 (defun run-tests (&key coverage)
   "Run every registered spec, signalling on any failure so ASDF's TEST-OP
