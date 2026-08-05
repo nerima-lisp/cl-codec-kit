@@ -60,13 +60,22 @@ verbatim, differing only in these three arguments."
      (expect (octets-to-string (string-to-octets values :encoding ,encoding) :encoding ,encoding)
              :to-equal values)))
 
-(defun run-tests (&key coverage)
+(defun run-tests (&key coverage (reporter :spec))
   "Run every registered spec, signalling on any failure so ASDF's TEST-OP
 fails. COVERAGE, off by default so a plain local/CI run stays fast and
 artifact-free, enables cl-weave's built-in SB-COVER integration and writes an
 HTML report to coverage-report/ plus a summary to cl-codec-kit.coverage in
-the current directory -- see docs/src/getting-started.md for how to read it."
-  (unless (run-all :reporter :spec :timeout-ms 20000
+the current directory -- see docs/src/getting-started.md for how to read it.
+
+REPORTER defaults to :SPEC (human-readable, what run-tests.lisp and
+nix flake check both use). cl-weave also ships :JUNIT (machine-readable XML
+for a CI system that ingests JUnit reports) and :GITHUB (workflow-command
+annotations) among others -- pass one explicitly when invoking this function
+from a context that can use it; this project's own CI runs inside a
+sandboxed `nix flake check` build, where CI-provider environment variables
+such as GITHUB_ACTIONS are deliberately not visible, so REPORTER cannot
+usefully auto-detect that environment here."
+  (unless (run-all :reporter reporter :timeout-ms 20000
                    :coverage coverage
                    :coverage-output (and coverage "cl-codec-kit.coverage")
                    :coverage-report-directory (and coverage "coverage-report/")
