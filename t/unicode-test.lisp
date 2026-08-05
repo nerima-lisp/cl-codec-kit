@@ -22,16 +22,27 @@
     ;; in the null lexical environment without needing a free variable
     ;; binding. Every code point below is a boundary: one below, at, and
     ;; above each edge of #xD800-#xDFFF, plus the codespace's own extremes.
+    ;;
+    ;; The four out-of-range conjuncts assert only the single comparison
+    ;; that actually excludes that point (the one against +MIN-SURROGATE+
+    ;; below the range, against +MAX-SURROGATE+ above it) rather than the
+    ;; full three-argument (<= LOW X HIGH) chain: cl-weave's
+    ;; :COMPARISON-OPERATOR mutator rewrites <= to a 3-argument >, and since
+    ;; +MIN-SURROGATE+ < +MAX-SURROGATE+ always holds, (> LOW X HIGH) can
+    ;; never be true regardless of X -- that mutant is unkillable by
+    ;; construction, no matter which out-of-range X is chosen. The two-
+    ;; argument form doesn't have that degenerate case: <=/> are true
+    ;; complements for any two reals, so every mutation flips it.
     (let ((results
             (run-mutations
-             '(and (not (<= #xD800 0 #xDFFF))          ; codespace minimum
-                   (not (<= #xD800 #xD7FF #xDFFF))      ; one below the range
-                   (<= #xD800 #xD800 #xDFFF)            ; range minimum
-                   (<= #xD800 #xDBFF #xDFFF)            ; last high surrogate
-                   (<= #xD800 #xDC00 #xDFFF)            ; first low surrogate
-                   (<= #xD800 #xDFFF #xDFFF)            ; range maximum
-                   (not (<= #xD800 #xE000 #xDFFF))      ; one above the range
-                   (not (<= #xD800 #x10FFFF #xDFFF)))   ; codespace maximum
+             '(and (not (<= #xD800 0))            ; codespace minimum
+                   (not (<= #xD800 #xD7FF))        ; one below the range
+                   (<= #xD800 #xD800 #xDFFF)       ; range minimum
+                   (<= #xD800 #xDBFF #xDFFF)       ; last high surrogate
+                   (<= #xD800 #xDC00 #xDFFF)       ; first low surrogate
+                   (<= #xD800 #xDFFF #xDFFF)       ; range maximum
+                   (not (<= #xE000 #xDFFF))        ; one above the range
+                   (not (<= #x10FFFF #xDFFF)))     ; codespace maximum
              (lambda (form mutation)
                (declare (ignore mutation))
                (eq (eval form) t)))))

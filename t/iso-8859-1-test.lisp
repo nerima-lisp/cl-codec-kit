@@ -8,10 +8,7 @@
                               :encoding :iso-8859-1)
             :to-equal "café ñ"))
 
-  (it-property "round-trips any 8-bit string, for any length"
-      ((values (gen-scalar-string :max #xFF :min-length 0 :max-length 32)))
-    (expect (octets-to-string (string-to-octets values :encoding :iso-8859-1) :encoding :iso-8859-1)
-            :to-equal values))
+  (it-round-trips :iso-8859-1 :max #xFF :max-length 32)
 
   (it "maps every octet directly to the same code point"
     (expect (octets-to-string (octets #xE9) :encoding :iso-8859-1)

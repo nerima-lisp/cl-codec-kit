@@ -25,7 +25,7 @@ implemented; see docs/src/project/roadmap.md."
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
-  :version "0.4.0"
+  :version "0.5.0"
   :homepage "https://github.com/nerima-lisp/cl-codec-kit"
   :bug-tracker "https://github.com/nerima-lisp/cl-codec-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-codec-kit.git")
@@ -41,6 +41,7 @@ implemented; see docs/src/project/roadmap.md."
    (:file "utf-16")
    (:file "utf-32")
    (:file "ucs-2")
+   (:file "single-octet")
    (:file "ascii")
    (:file "iso-8859-1")
    (:file "streaming")
@@ -52,7 +53,7 @@ implemented; see docs/src/project/roadmap.md."
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
-  :version "0.4.0"
+  :version "0.5.0"
   :homepage "https://github.com/nerima-lisp/cl-codec-kit"
   :bug-tracker "https://github.com/nerima-lisp/cl-codec-kit/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-codec-kit.git")

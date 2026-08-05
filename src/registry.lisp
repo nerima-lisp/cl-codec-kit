@@ -85,14 +85,22 @@ a Unicode-family encoding, which can represent U+FFFD, overrides it.
 
 Re-registering an existing NAME replaces it -- loading this file's
 definitions in :SERIAL order is what makes each encoding file independent of
-load order among the others."
-  `(let ((encoding (%make-character-encoding :name ,name :decoder #',decoder :encoder #',encoder
-                                              :resync-width ,resync-width
-                                              :bom-sensing-p ,bom-sensing-p
-                                              :default-replacement ,default-replacement)))
-     (dolist (designator (list* ,name ',aliases))
-       (setf (gethash designator *encodings*) encoding))
-     ,name))
+load order among the others.
+
+NAME is bound once, via the once-only idiom, since it is spliced into the
+expansion three times: a form with side effects (unlikely for a keyword
+literal in practice, but not ruled out by this macro's contract) would
+otherwise run three times instead of once."
+  (let ((name-var (gensym "NAME")) (encoding-var (gensym "ENCODING")))
+    `(let* ((,name-var ,name)
+            (,encoding-var (%make-character-encoding :name ,name-var :decoder #',decoder
+                                                      :encoder #',encoder
+                                                      :resync-width ,resync-width
+                                                      :bom-sensing-p ,bom-sensing-p
+                                                      :default-replacement ,default-replacement)))
+       (dolist (designator (cons ,name-var ',aliases))
+         (setf (gethash designator *encodings*) ,encoding-var))
+       ,name-var)))
 
 (defun find-character-encoding (designator)
   "Return the CHARACTER-ENCODING registered under DESIGNATOR (a keyword naming

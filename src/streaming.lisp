@@ -14,6 +14,27 @@
 ;;;; POSITION naming where that final, incomplete character starts -- a
 ;;;; contract DECODE-ERROR (conditions.lisp) makes structural, not just
 ;;;; conventional.
+;;;;
+;;;; %DECODE-WITH-RECOVERY below is this library's one deliberately
+;;;; continuation-passing function: ON-TRUNCATED is a continuation its two
+;;;; callers each supply their own ending to (escape with the leftover
+;;;; octets, or substitute one REPLACEMENT and fall through), rather than a
+;;;; condition %DECODE-WITH-RECOVERY would have to interpret itself.
+;;;; BOM-SENSING-DECODE (unicode.lisp) is the same shape one level up: which
+;;;; decoder function to call is data selected by which BOM matched, not a
+;;;; branch hard-coded into the dispatcher. Neither is a stylistic flourish;
+;;;; both exist because the caller, not this file, is what should decide
+;;;; what happens next.
+;;;;
+;;;; What is deliberately NOT continuation-passing is the octet-at-a-time
+;;;; character loop inside every encoding's own decoder (UTF-8-DECODE and
+;;;; siblings): Common Lisp does not guarantee tail-call elimination, so
+;;;; threading an explicit continuation through a loop bounded only by input
+;;;; length -- a stream chunk, potentially -- would trade a proven-safe
+;;;; iterative LOOP for unbounded recursion depth. CPS earns its keep here
+;;;; exactly where a single call has more than one sensible continuation;
+;;;; forcing it onto a loop that already has exactly one next step would
+;;;; only add risk.
 (in-package #:cl-codec-kit)
 
 (defun decode-prefix (octets &key (start 0) end (encoding *default-encoding*))
@@ -43,11 +64,15 @@ designator instead."
           (values (funcall (character-encoding-decoder enc) octets start boundary)
                   (subseq octets boundary end)))))))
 
-(defun %decode-with-recovery (decoder octets start end resync-width replacement out on-truncated)
+(defun %decode-with-recovery (decoder octets start end resync-width replacement out
+                              on-truncated on-success)
   "Decode OCTETS[START,END) with DECODER (a decoder function of (octets start
 end)), writing successfully-decoded text to the string-output-stream OUT and
 substituting REPLACEMENT for each invalid sequence, resuming RESYNC-WIDTH
-octets past it.
+octets past it. Every exit from this function is a call to one of its two
+continuations, ON-TRUNCATED or ON-SUCCESS, never a plain RETURN -- neither
+caller is left to infer 'the loop ended' from this function's own return
+value, which it does not otherwise define.
 
 A TRUNCATED-SEQUENCE is not substituted for directly here: by its own
 contract (conditions.lisp), its POSITION only ever names a leading byte/unit
@@ -58,7 +83,11 @@ two callers. ON-TRUNCATED (a function of one argument, the boundary position)
 decides: LENIENT-DECODE-PREFIX below escapes with the boundary and its
 leftover octets, since a later chunk may complete it, while %LENIENT-DECODE
 (api.lisp) has no later chunk coming and substitutes REPLACEMENT once for the
-whole attempt."
+whole attempt, then lets the loop run to completion. ON-SUCCESS (a function
+of zero arguments) is called once OCTETS[START,END) is fully consumed
+without a trailing truncation -- reached whether every sequence decoded
+cleanly or the last one was substituted via REPLACEMENT, either way with
+nothing left for a later chunk to complete."
   (let ((index start))
     (loop while (< index end)
           do (handler-case
@@ -73,7 +102,8 @@ whole attempt."
                  (let ((position (decode-error-position c)))
                    (write-string (funcall decoder octets index position) out)
                    (write-char replacement out)
-                   (setf index (+ position resync-width))))))))
+                   (setf index (+ position resync-width))))))
+    (funcall on-success)))
 
 (defun lenient-decode-prefix (octets &key (start 0) end (encoding *default-encoding*)
                               replacement)
@@ -107,6 +137,8 @@ DECODE-PREFIX refuses, for the same reason."
                            (lambda (boundary)
                              (return-from lenient-decode-prefix
                                (values (get-output-stream-string out)
-                                       (subseq octets boundary end)))))
-    (values (get-output-stream-string out)
-            (make-array 0 :element-type (array-element-type octets)))))
+                                       (subseq octets boundary end))))
+                           (lambda ()
+                             (return-from lenient-decode-prefix
+                               (values (get-output-stream-string out)
+                                       (make-array 0 :element-type (array-element-type octets))))))))

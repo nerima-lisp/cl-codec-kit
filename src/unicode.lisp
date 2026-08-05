@@ -75,21 +75,21 @@ CHARACTER-ENCODING's DEFAULT-REPLACEMENT slot's (TYPE CHARACTER) declaration
 (registry.lisp)."
   (let* ((base (symbol-name base-name))
          (be-name (intern (format nil "~ABE" base)))
-         (le-name (intern (format nil "~ALE" base)))
-         (be-decode (intern (format nil "~A-DECODE" be-name)))
-         (be-encode (intern (format nil "~A-ENCODE" be-name)))
-         (le-decode (intern (format nil "~A-DECODE" le-name)))
-         (le-encode (intern (format nil "~A-ENCODE" le-name)))
-         (be-keyword (intern (symbol-name be-name) :keyword))
-         (le-keyword (intern (symbol-name le-name) :keyword)))
-    `(progn
-       (defun ,be-decode (octets start end) (,core-decoder octets start end :be))
-       (defun ,be-encode (string start end) (,core-encoder string start end :be ,be-keyword))
-       (defun ,le-decode (octets start end) (,core-decoder octets start end :le))
-       (defun ,le-encode (string start end) (,core-encoder string start end :le ,le-keyword))
-       (define-encoding ,be-keyword (:aliases ,aliases-be :resync-width ,resync-width
-                                      :default-replacement ,default-replacement)
-         :decoder ,be-decode :encoder ,be-encode)
-       (define-encoding ,le-keyword (:aliases ,aliases-le :resync-width ,resync-width
-                                      :default-replacement ,default-replacement)
-         :decoder ,le-decode :encoder ,le-encode))))
+         (le-name (intern (format nil "~ALE" base))))
+    (let* ((be-decode (intern (format nil "~A-DECODE" be-name)))
+           (be-encode (intern (format nil "~A-ENCODE" be-name)))
+           (le-decode (intern (format nil "~A-DECODE" le-name)))
+           (le-encode (intern (format nil "~A-ENCODE" le-name)))
+           (be-keyword (intern (symbol-name be-name) :keyword))
+           (le-keyword (intern (symbol-name le-name) :keyword)))
+      `(progn
+         (defun ,be-decode (octets start end) (,core-decoder octets start end :be))
+         (defun ,be-encode (string start end) (,core-encoder string start end :be ,be-keyword))
+         (defun ,le-decode (octets start end) (,core-decoder octets start end :le))
+         (defun ,le-encode (string start end) (,core-encoder string start end :le ,le-keyword))
+         (define-encoding ,be-keyword (:aliases ,aliases-be :resync-width ,resync-width
+                                        :default-replacement ,default-replacement)
+           :decoder ,be-decode :encoder ,be-encode)
+         (define-encoding ,le-keyword (:aliases ,aliases-le :resync-width ,resync-width
+                                        :default-replacement ,default-replacement)
+           :decoder ,le-decode :encoder ,le-encode)))))

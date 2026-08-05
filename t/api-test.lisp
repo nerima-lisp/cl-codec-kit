@@ -22,11 +22,14 @@
   ;; lenient-mode resync behavior (RESYNC-WIDTH) is covered in
   ;; utf-16-test.lisp instead of duplicated here.
   (it "replaces an invalid ASCII byte and keeps going, one octet at a time"
-    (let ((result (octets-to-string (octets #x41 #xFF #x42) :encoding :ascii :errorp nil)))
-      (expect (length result) :to-be 3)
-      (expect (char result 0) :to-be #\A)
-      (expect (char-code (char result 1)) :to-be #x1a)
-      (expect (char result 2) :to-be #\B)))
+    ;; WITH-SOFT-ASSERTIONS: each EXPECT pins a different character of the
+    ;; result independently, so a failure on one should not hide the others.
+    (with-soft-assertions
+      (let ((result (octets-to-string (octets #x41 #xFF #x42) :encoding :ascii :errorp nil)))
+        (expect (length result) :to-be 3)
+        (expect (char result 0) :to-be #\A)
+        (expect (char-code (char result 1)) :to-be #x1a)
+        (expect (char result 2) :to-be #\B))))
 
   (it ":ERRORP NIL signals STREAMING-UNSAFE-ENCODING for the generic designators"
     (dolist (encoding '(:utf-16 :utf-32 :ucs-2))

@@ -11,7 +11,7 @@
     # output table (packages/checks/apps/devShells/formatter/overlays) from
     # one mkPackageFlake call below, instead of hand-rolling each of them.
     cl-nix-forge = {
-      url = "github:nerima-lisp/cl-nix-forge/v0.4.0";
+      url = "github:nerima-lisp/cl-nix-forge/v0.5.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -20,13 +20,21 @@
     # -- never through the package's own lispDependencies, so a consumer
     # building only the library never fetches or builds it.
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.1.4";
+      url = "github:nerima-lisp/cl-weave/v1.3.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # The structural-refactoring CLI contributors run by hand. Consumed only
+    # as an interactive devShell package, never as a Lisp dependency.
+    paredit-cli = {
+      url = "github:nerima-lisp/paredit-cli/v1.5.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.treefmt-nix.follows = "treefmt-nix";
     };
   };
 
@@ -37,6 +45,7 @@
       cl-nix-forge,
       cl-weave,
       treefmt-nix,
+      paredit-cli,
       ...
     }:
     let
@@ -73,6 +82,12 @@
       lispCheckDependencies = ctx: [ cl-weave.packages.${ctx.system}.cl-weave ];
 
       docs.root = ./docs;
+
+      # Interactive-only: pulled into `nix develop`'s PATH via `mkDevShell`'s
+      # `extraPackages`, never into the build (`lispDependencies`/
+      # `lispCheckDependencies` above are what those actually gate).
+      #
+      devShellPackages = ctx: [ paredit-cli.packages.${ctx.system}.default ];
 
       # PACKAGE_STANDARD.md scopes treefmt to Nix and only Nix (the default
       # module mkPackageFlake applies when `module` is omitted): a YAML
