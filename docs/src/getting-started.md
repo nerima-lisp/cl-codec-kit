@@ -49,6 +49,21 @@ extra artifacts.
 
 `:encoding` defaults to `cl-codec-kit:*default-encoding*`, which is `:utf-8`.
 
+## Development checks
+
+From the repository root, enter the development shell and run the complete
+flake check:
+
+```sh
+nix develop
+nix flake check --all-systems --no-write-lock-file --print-build-logs --keep-going
+```
+
+The check evaluates the declared packages, development shells, formatters,
+tests, and documentation for every system listed by the flake. The test suite
+can also be run directly with `sbcl --script run-tests.lisp` when only the
+Common Lisp tests are needed.
+
 ## Lenient decoding
 
 By default, an invalid or truncated byte sequence signals a condition. Pass
