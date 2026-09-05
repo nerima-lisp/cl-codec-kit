@@ -1,4 +1,3 @@
-;;;; t/ucs-2-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe

@@ -1,4 +1,3 @@
-;;;; t/utf-32-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe
@@ -12,8 +11,6 @@
   (it-round-trips :utf-32be)
 
   (it "encodes a code point as 4 big-endian octets"
-    ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
-    ;; vectors and would pass regardless of content.
     (expect (string-to-octets (string (code-char #x10348)) :encoding :utf-32be)
             :to-equalp (octets #x00 #x01 #x03 #x48)))
 

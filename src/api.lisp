@@ -1,9 +1,3 @@
-;;;; src/api.lisp
-;;;;
-;;;; The public entry points. Every function here dispatches through the
-;;;; registry (registry.lisp) via FIND-CHARACTER-ENCODING rather than calling
-;;;; a specific encoding's decoder/encoder directly, so adding a new encoding
-;;;; file never touches this one.
 (in-package #:cl-codec-kit)
 
 (defun %lenient-decode (encoding-struct octets start end replacement)

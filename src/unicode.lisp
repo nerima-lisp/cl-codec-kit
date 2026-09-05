@@ -1,13 +1,3 @@
-;;;; src/unicode.lisp
-;;;;
-;;;; Data and logic shared by every Unicode Transformation Format this
-;;;; library implements (UTF-8, UTF-16, UTF-32, UCS-2), factored out of each
-;;;; format's own file: the surrogate range and the maximum code point are
-;;;; Unicode-wide invariants, not properties of any one encoding, and the
-;;;; "sense a byte-order mark, else default to big-endian" dispatch that
-;;;; UTF-16, UTF-32, and UCS-2's generic codecs each independently repeated
-;;;; differs between them only in the BOM's own byte width and value -- data,
-;;;; not logic.
 (in-package #:cl-codec-kit)
 
 (defconstant +min-surrogate+ #xD800

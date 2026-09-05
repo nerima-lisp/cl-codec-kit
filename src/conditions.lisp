@@ -1,10 +1,3 @@
-;;;; src/conditions.lisp
-;;;;
-;;;; Every condition below is generated through %DEFINE-CODEC-CONDITION,
-;;;; mirroring cl-concurrent-kit's %DEFINE-KIT-CONDITION: a slot's reader name
-;;;; and a :REPORT method's boilerplate lambda are easy to drift between
-;;;; hand-written conditions (a missing :READER, an inconsistent reader name).
-;;;; The macro makes the convention the only way to spell a condition here.
 (in-package #:cl-codec-kit)
 
 (define-condition cl-codec-kit-error (error) ()

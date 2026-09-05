@@ -1,10 +1,3 @@
-;;;; src/ucs-2.lisp
-;;;;
-;;;; UCS-2 predates surrogate pairs: every code unit is a complete BMP code
-;;;; point (U+0000-U+FFFF) on its own, and a code unit that falls in the
-;;;; surrogate range (U+D800-U+DFFF) is malformed rather than half of a pair.
-;;;; Reuses %U16-READ/%U16-WRITE from utf-16.lisp -- the byte-order bit
-;;;; operations are identical, only the per-unit interpretation differs.
 (in-package #:cl-codec-kit)
 
 (defun %ucs2-decode (octets start end byte-order)

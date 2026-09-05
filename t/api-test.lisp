@@ -1,4 +1,3 @@
-;;;; t/api-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe
@@ -16,14 +15,7 @@
 
 (describe
   "OCTETS-TO-STRING lenient mode across encodings"
-  ;; ASCII's default replacement is #x1A (SUB); this compares CHAR-CODE
-  ;; rather than embedding the raw control character in a literal, so a
-  ;; failing expectation's printed diff never contains it. UTF-16's own
-  ;; lenient-mode resync behavior (RESYNC-WIDTH) is covered in
-  ;; utf-16-test.lisp instead of duplicated here.
   (it "replaces an invalid ASCII byte and keeps going, one octet at a time"
-    ;; WITH-SOFT-ASSERTIONS: each EXPECT pins a different character of the
-    ;; result independently, so a failure on one should not hide the others.
     (with-soft-assertions
       (let ((result (octets-to-string (octets #x41 #xFF #x42) :encoding :ascii :errorp nil)))
         (expect (length result) :to-be 3)
@@ -40,10 +32,6 @@
     (expect (octets-to-string (octets #xFE #xFF #x00 #x41) :encoding :utf-16) :to-equal "A"))
 
   (it "replaces a sequence truncated at the true end with exactly one REPLACEMENT"
-    ;; #xE3 #x81 is two of the three bytes UTF-8 needs for a character -- one
-    ;; malformed attempt, not two. A resync-width-based resume would land back
-    ;; inside the same truncated fragment (#x81 alone is not a valid leading
-    ;; byte either) and emit a second, spurious REPLACEMENT for it.
     (let ((result (octets-to-string (octets #xE3 #x81) :encoding :utf-8 :errorp nil)))
       (expect (length result) :to-be 1)
       (expect (char result 0) :to-be #\REPLACEMENT_CHARACTER))))
@@ -87,11 +75,6 @@
 
 (describe
   "the omitted :REPLACEMENT resolves per encoding, in both directions"
-  ;; registry-test.lisp pins the table itself and cites the babel source it
-  ;; was transcribed from. These tests pin that the table is what the three
-  ;; lenient entry points actually reach for -- the regression that matters
-  ;; is a library-wide constant creeping back into any one of them, which the
-  ;; table test alone would not catch.
   (it "substitutes U+FFFD when decoding under any Unicode-family encoding"
     (dolist (case '((:utf-8    (#x41 #x80 #x42))
                     (:utf-16be (#x00 #x41 #xDC #x00 #x00 #x42))
@@ -105,21 +88,10 @@
                 :to-equal (format nil "A~CB" #\REPLACEMENT_CHARACTER)))))
 
   (it "substitutes #x1A (SUB) when decoding under :ASCII, the same call shape"
-    ;; :ISO-8859-1 has no decode-side counterpart: every octet value is a
-    ;; valid Latin-1 character, so its decoder can never substitute anything.
     (expect (octets-to-string (octets #x41 #xFF #x42) :encoding :ascii :errorp nil)
             :to-equal (format nil "A~CB" (code-char #x1a))))
 
   (it "substitutes each encoding's own default when encoding, too"
-    ;; Asserted against a strict encode of the expected replacement rather
-    ;; than a literal octet list, so the expectation stays readable and does
-    ;; not restate each encoding's byte layout.
-    ;;
-    ;; The three generic, BOM-sensing designators are excluded: their
-    ;; encoders emit a byte-order mark per call, and %LENIENT-ENCODE calls an
-    ;; encoder once per chunk, so their :ERRORP NIL output carries a BOM
-    ;; before every chunk. That is a separate defect and asserting on it here
-    ;; would pin it as intended behavior.
     (dolist (case (list (list :utf-8      (code-char #xD800) #\REPLACEMENT_CHARACTER)
                         (list :utf-16be   (code-char #xD800) #\REPLACEMENT_CHARACTER)
                         (list :utf-16le   (code-char #xD800) #\REPLACEMENT_CHARACTER)

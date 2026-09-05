@@ -1,22 +1,9 @@
-;;;; t/oracle-test.lisp
-;;;;
-;;;; Differential testing against SB-EXT:OCTETS-TO-STRING/STRING-TO-OCTETS:
-;;;; this library's whole point is not delegating to those functions in its
-;;;; shipped system (cl-codec-kit.asd's :DEPENDS-ON stays empty), but nothing
-;;;; stops the *test* system from using them as an independent oracle to
-;;;; cross-check this library's from-scratch UTF-8 codec against SBCL's own.
-;;;; SB-* is an implementation dependency, not an external one -- it does not
-;;;; count against DEPENDENCY_POLICY.md's test-only-dependency limit, and it
-;;;; never appears outside this one file.
 (in-package #:cl-codec-kit/test)
 
 (describe
   "cl-codec-kit vs. SB-EXT, as independent UTF-8 implementations"
   (it-property "STRING-TO-OCTETS agrees with SB-EXT:STRING-TO-OCTETS, for any scalar-value string"
       ((values (gen-scalar-string :max #x10FFFF :min-length 0 :max-length 24)))
-    ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
-    ;; vectors, which would make this property vacuously true regardless of
-    ;; whether the two encoders actually agree.
     (expect (string-to-octets values :encoding :utf-8)
             :to-equalp (sb-ext:string-to-octets values :external-format :utf-8)))
 

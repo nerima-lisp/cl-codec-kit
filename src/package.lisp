@@ -1,15 +1,6 @@
-;;;; src/package.lisp
-;;;;
-;;;; The single public package. Layers build on each other in the order they
-;;;; are loaded (per cl-codec-kit.asd's :serial t): conditions and registry
-;;;; come first since every encoding depends on both; each encoding file
-;;;; (utf-8, utf-16, utf-32, ucs-2, ascii, iso-8859-1) registers itself
-;;;; independently of the others; streaming and api are built on the
-;;;; registry alone, never on a specific encoding.
 (defpackage #:cl-codec-kit
   (:use #:cl)
   (:export
-   ;; Public API
    #:octets-to-string
    #:string-to-octets
    #:string-size-in-octets
@@ -18,13 +9,8 @@
    #:*default-encoding*
    #:list-character-encodings
    #:find-character-encoding
-   ;; The one CHARACTER-ENCODING slot that is part of the public contract:
-   ;; it is the value OCTETS-TO-STRING/STRING-TO-OCTETS/LENIENT-DECODE-PREFIX
-   ;; substitute when :REPLACEMENT is omitted. Returns a CHARACTER, where
-   ;; babel's similarly-named ENC-DEFAULT-REPLACEMENT returns a code point.
    #:character-encoding-default-replacement
 
-   ;; Conditions
    #:cl-codec-kit-error
    #:decode-error
    #:decode-error-position

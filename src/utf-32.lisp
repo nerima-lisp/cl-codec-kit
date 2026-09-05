@@ -1,8 +1,3 @@
-;;;; src/utf-32.lisp
-;;;;
-;;;; UTF-32 fixes every code point at 4 octets, so there is no multi-unit
-;;;; assembly like UTF-16's surrogate pairs -- only byte order and the same
-;;;; surrogate/out-of-range rejection every encoding here applies.
 (in-package #:cl-codec-kit)
 
 (defparameter *utf-32-bom-be* #(0 0 #xFE #xFF) "UTF-32's big-endian byte-order mark.")

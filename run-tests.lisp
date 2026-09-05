@@ -1,8 +1,3 @@
-;;;; run-tests.lisp
-;;;;
-;;;; Bootstrap script: register this checkout's and cl-weave's ASDF
-;;;; definitions and run the test system without scanning every inherited
-;;;; source registry tree.
 
 (require :asdf)
 (format t "tests: bootstrap~%")

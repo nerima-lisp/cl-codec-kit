@@ -1,4 +1,3 @@
-;;;; t/package.lisp
 (defpackage #:cl-codec-kit/test (:use #:cl)
   (:shadowing-import-from #:cl-weave #:describe)
   (:import-from #:cl-weave

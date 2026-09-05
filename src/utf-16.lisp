@@ -1,13 +1,3 @@
-;;;; src/utf-16.lisp
-;;;;
-;;;; UTF-16BE and UTF-16LE differ only in which byte of each 16-bit code unit
-;;;; comes first, so %U16-DECODE and %U16-ENCODE take the byte order as a
-;;;; keyword and every other function -- surrogate-pair assembly, code-unit
-;;;; splitting -- is shared. Generic :UTF-16 senses a byte-order mark (BOM) on
-;;;; decode and strips it via BOM-SENSING-DECODE (unicode.lisp); on encode it
-;;;; always writes a big-endian BOM followed by big-endian content, since
-;;;; Unicode's own spec states big-endian as the default assumption for
-;;;; UTF-16 in the absence of a BOM.
 (in-package #:cl-codec-kit)
 
 (defparameter *utf-16-bom-be* #(#xFE #xFF)

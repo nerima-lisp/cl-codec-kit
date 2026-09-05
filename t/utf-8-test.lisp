@@ -1,4 +1,3 @@
-;;;; t/utf-8-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe
@@ -11,11 +10,6 @@
   (it-round-trips :utf-8)
 
   (it "encodes known code points to their documented UTF-8 byte sequences"
-    ;; :TO-EQUAL is CL:EQUAL, which does not descend (UNSIGNED-BYTE 8)
-    ;; vectors -- two distinct, content-identical octet vectors are EQUAL
-    ;; only by falling through to EQ, which is false for freshly-allocated
-    ;; arrays. :TO-EQUALP (CL:EQUALP) is required for every octet-vector
-    ;; comparison in this file.
     (expect (string-to-octets (string (code-char #x24)) :encoding :utf-8)
             :to-equalp (octets #x24))
     (expect (string-to-octets (string (code-char #xA2)) :encoding :utf-8)
@@ -67,8 +61,6 @@ excludes entirely since they could only ever start an overlong 2-byte sequence"
         (string-to-octets (string (code-char #xD800)) :encoding :utf-8)))
 
   (it ":ERRORP NIL replaces each bad byte and keeps decoding"
-    ;; UTF-8's default replacement is U+FFFD, not #x1A -- see the
-    ;; per-encoding table in registry-test.lisp for why.
     (let ((result (octets-to-string (octets #x41 #x80 #x42) :encoding :utf-8 :errorp nil)))
       (expect (length result) :to-be 3)
       (expect (char result 0) :to-be #\A)

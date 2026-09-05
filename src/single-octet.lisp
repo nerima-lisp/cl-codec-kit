@@ -1,11 +1,3 @@
-;;;; src/single-octet.lisp
-;;;;
-;;;; Data and logic shared by every single-octet encoding this library
-;;;; implements (ASCII, ISO-8859-1): one octet per character, every octet
-;;;; value below the encoding's own MAX-CODE-POINT mapping directly to the
-;;;; identical code point. No multi-byte sequence exists in this family, so
-;;;; no TRUNCATED-SEQUENCE case ever applies -- every octet decodes
-;;;; independently, unlike unicode.lisp's BOM-sensing, multi-unit family.
 (in-package #:cl-codec-kit)
 
 (defmacro define-single-octet-encoding (name (&key aliases (max-code-point #xFF)

@@ -1,13 +1,3 @@
-;;;; src/utf-8.lisp
-;;;;
-;;;; A from-scratch UTF-8 codec. The decode-side validation (leading-byte
-;;;; classification, continuation-byte checking, overlong-sequence rejection,
-;;;; surrogate rejection, and the truncated-vs-invalid distinction) mirrors
-;;;; cl-tty-kit's src/utf8.lisp, which has run as that repository's hand-rolled
-;;;; decoder in production; the difference here is that TRUNCATED-SEQUENCE is
-;;;; signaled as a condition (for DECODE-PREFIX in streaming.lisp to catch)
-;;;; rather than pre-scanned for by the caller, and the encode side is
-;;;; hand-written rather than delegated to SB-EXT:STRING-TO-OCTETS.
 (in-package #:cl-codec-kit)
 
 (declaim (inline %utf8-continuation-octet-p))

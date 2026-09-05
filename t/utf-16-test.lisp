@@ -1,4 +1,3 @@
-;;;; t/utf-16-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe
@@ -12,8 +11,6 @@
   (it-round-trips :utf-16be)
 
   (it "encodes a supplementary-plane character as a surrogate pair, big-endian"
-    ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
-    ;; vectors and would pass regardless of content.
     (expect (string-to-octets (string (code-char #x10348)) :encoding :utf-16be)
             :to-equalp (octets #xD8 #x00 #xDF #x48)))
 
@@ -44,10 +41,6 @@
       (unencodable-character (c) (expect (unencodable-character-encoding c) :to-be :utf-16le))))
 
   (it ":ERRORP NIL resyncs by whole code units, not by one octet"
-    ;; A truncated surrogate pair yields exactly one replacement, not one per
-    ;; leftover octet -- advancing by the wrong stride here would decode
-    ;; #x0000 as a spurious extra character. This is the scenario that made
-    ;; :RESYNC-WIDTH necessary on CHARACTER-ENCODING (registry.lisp).
     (with-soft-assertions
       (let ((result (octets-to-string (octets #x00 #x41 #xD8 #x00) :encoding :utf-16be :errorp nil)))
         (expect (length result) :to-be 2)

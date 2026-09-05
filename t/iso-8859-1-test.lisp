@@ -1,4 +1,3 @@
-;;;; t/iso-8859-1-test.lisp
 (in-package #:cl-codec-kit/test)
 
 (describe
@@ -17,8 +16,6 @@
   (it "signals UNENCODABLE-CHARACTER above U+00FF"
     (signals unencodable-character (string-to-octets "日" :encoding :iso-8859-1)))
 
-  ;; :TO-EQUALP, not :TO-EQUAL: CL:EQUAL falls through to EQ on octet
-  ;; vectors and would pass regardless of content.
   (it "resolves the :LATIN-1 and :LATIN1 aliases"
     (expect (string-to-octets "x" :encoding :latin-1)
             :to-equalp (string-to-octets "x" :encoding :iso-8859-1))
