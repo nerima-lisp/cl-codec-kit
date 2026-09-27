@@ -114,3 +114,28 @@
     (expect (string-to-octets (format nil "a~Cb" (code-char #xD800))
                               :encoding :utf-8 :errorp nil :replacement #\?)
             :to-equalp (string-to-octets "a?b" :encoding :utf-8))))
+(describe
+  "OCTETS-TO-STRING automatic Unicode encoding"
+  (it "consumes the detected BOM before decoding"
+    (dolist (case '((:utf-8 ( #xEF #xBB #xBF #x41))
+                    (:utf-16be (#xFE #xFF 0 #x41))
+                    (:utf-16le (#xFF #xFE #x41 0))
+                    (:utf-32be (0 0 #xFE #xFF 0 0 0 #x41))
+                    (:utf-32le (#xFF #xFE 0 0 #x41 0 0 0))))
+      (destructuring-bind (encoding bytes) case
+        (expect (octets-to-string (apply #'octets bytes) :encoding :auto)
+                :to-equal "A"))))
+  (it "uses the selected range for detection and decoding"
+    (expect (octets-to-string (octets #x58 #xFE #xFF 0 #x41 #x59)
+                              :start 1 :end 5 :encoding :auto)
+            :to-equal "A"))
+  (it "decodes BOM-less null patterns and ordinary UTF-8"
+    (expect (octets-to-string (octets 0 #x41) :encoding :auto)
+            :to-equal "A")
+    (expect (octets-to-string (octets #x41 0) :encoding :auto)
+            :to-equal "A")
+    (expect (octets-to-string (octets #x41 #xC3 #xA9) :encoding :auto)
+            :to-equal "Aé"))
+  (it "reports invalid data after an automatically consumed BOM"
+    (signals invalid-leading-byte
+        (octets-to-string (octets #xEF #xBB #xBF #xFF) :encoding :auto))))

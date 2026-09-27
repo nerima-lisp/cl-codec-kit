@@ -7,7 +7,6 @@ standalone character in every encoding this library implements.")
   "The last code point in the UTF-16 surrogate range.")
 (defconstant +max-code-point+ #x10FFFF
   "The highest code point Unicode defines.")
-
 (declaim (inline surrogate-code-point-value-p))
 (defun surrogate-code-point-value-p (code-point)
   "T when CODE-POINT falls in the UTF-16 surrogate range
@@ -21,6 +20,40 @@ character."
   (and (<= (+ start (length bom)) end)
        (loop for i from 0 below (length bom)
              always (= (aref octets (+ start i)) (aref bom i)))))
+(defun detect-unicode-encoding (octets &key (start 0) end)
+  "Detect a Unicode encoding from OCTETS[START,END). Returns two values:
+the encoding designator and the number of leading BOM octets consumed by a
+decoder. BOM checks take precedence over null-pattern checks, and UTF-32 BOMs
+are checked before UTF-16 BOMs because FF FE 00 00 is UTF-32LE."
+  (let ((end (or end (length octets))))
+    (cond
+      ((%octets-start-with-p octets start end #(0 0 #xFE #xFF))
+       (values :utf-32be 4))
+      ((%octets-start-with-p octets start end #(#xFF #xFE 0 0))
+       (values :utf-32le 4))
+      ((%octets-start-with-p octets start end #(#xFE #xFF))
+       (values :utf-16be 2))
+      ((%octets-start-with-p octets start end #(#xFF #xFE))
+       (values :utf-16le 2))
+      ((%octets-start-with-p octets start end #(#xEF #xBB #xBF))
+       (values :utf-8 3))
+      ((and (<= (+ start 4) end)
+            (= (aref octets start) 0)
+            (= (aref octets (+ start 1)) 0)
+            (= (aref octets (+ start 2)) 0))
+       (values :utf-32be 0))
+      ((and (<= (+ start 4) end)
+            (= (aref octets (+ start 1)) 0)
+            (= (aref octets (+ start 2)) 0)
+            (= (aref octets (+ start 3)) 0))
+       (values :utf-32le 0))
+      ((and (<= (+ start 2) end)
+            (= (aref octets start) 0))
+       (values :utf-16be 0))
+      ((and (<= (+ start 2) end)
+            (= (aref octets (+ start 1)) 0))
+       (values :utf-16le 0))
+      (t (values :utf-8 0)))))
 
 (defun bom-sensing-decode (octets start end bom-be bom-le be-decoder le-decoder)
   "Shared generic-decode dispatch for a BOM-sensing Unicode encoding: decode

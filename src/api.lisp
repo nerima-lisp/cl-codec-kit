@@ -32,10 +32,11 @@ in registry.lisp); OCTETS-TO-STRING checks this before calling here."
 (defun octets-to-string (octets &key (start 0) end (encoding *default-encoding*)
                                 (errorp t) replacement)
   "Decode OCTETS[START,END) (default the whole vector) as ENCODING into a
-string. When ERRORP is true (the default), an invalid or truncated sequence
-signals the corresponding condition from conditions.lisp. When ERRORP is
-NIL, each invalid or truncated sequence is instead replaced by REPLACEMENT
-and decoding continues.
+string. When ENCODING is :AUTO, detect a Unicode encoding from the selected
+range and consume its leading BOM before decoding. When ERRORP is true (the
+default), an invalid or truncated sequence signals the corresponding
+condition from conditions.lisp. When ERRORP is NIL, each invalid or truncated
+sequence is instead replaced by REPLACEMENT and decoding continues.
 
 REPLACEMENT NIL (the default) means ENCODING's own
 CHARACTER-ENCODING-DEFAULT-REPLACEMENT (registry.lisp): U+FFFD for every
@@ -46,20 +47,27 @@ from its ENC-DEFAULT-REPLACEMENT slot, which no babel code path reads.
 
 A single ERRORP T call is safe for every registered encoding, including the
 generic, BOM-sensing :UTF-16/:UTF-32/:UCS-2 (it decodes OCTETS once, so a
-byte-order mark is only ever sensed at OCTETS' own start). ERRORP NIL,
-though, signals STREAMING-UNSAFE-ENCODING for those three designators, for
-the same reason DECODE-PREFIX (streaming.lisp) does: recovering from an
-error resumes decoding at an interior offset, where a BOM-sensing decoder
-would wrongly re-check for a byte-order mark."
-  (let* ((enc (find-character-encoding encoding))
-         (end (or end (length octets)))
-         (replacement (or replacement (character-encoding-default-replacement enc))))
-    (if errorp
-        (funcall (character-encoding-decoder enc) octets start end)
-        (progn
-          (when (character-encoding-bom-sensing-p enc)
-            (error 'streaming-unsafe-encoding :designator encoding))
-          (%lenient-decode enc octets start end replacement)))))
+byte-order mark is only ever sensed at OCTETS' own start). OCTETS-TO-STRING
+:ENCODING :AUTO selects an explicit byte-order encoding after consuming the
+detected BOM, so its ERRORP NIL path has the same behavior as that explicit
+encoding. ERRORP NIL for an explicitly generic BOM-sensing designator still
+signals STREAMING-UNSAFE-ENCODING, for the same reason DECODE-PREFIX
+(streaming.lisp) does."
+  (let* ((end (or end (length octets)))
+         (selected-encoding encoding)
+         (bom-length 0))
+    (when (eq selected-encoding :auto)
+      (multiple-value-setq (selected-encoding bom-length)
+        (detect-unicode-encoding octets :start start :end end))
+      (incf start bom-length))
+    (let* ((enc (find-character-encoding selected-encoding))
+           (replacement (or replacement (character-encoding-default-replacement enc))))
+      (if errorp
+          (funcall (character-encoding-decoder enc) octets start end)
+          (progn
+            (when (character-encoding-bom-sensing-p enc)
+              (error 'streaming-unsafe-encoding :designator selected-encoding))
+            (%lenient-decode enc octets start end replacement))))))
 
 (defun %lenient-encode (encoding-struct string start end replacement)
   "Encode STRING[START,END) with ENCODING-STRUCT, substituting REPLACEMENT's

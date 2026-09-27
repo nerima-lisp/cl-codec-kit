@@ -2,6 +2,18 @@
 
 ## Conversion
 
+### `detect-unicode-encoding`
+
+```lisp
+(detect-unicode-encoding octets &key (start 0) end)
+```
+
+Inspect `octets[start,end)` and return two values: a Unicode encoding
+designator and the number of leading BOM octets consumed by a decoder. BOMs
+take precedence over BOM-less null-pattern detection. UTF-32 BOMs are checked
+before UTF-16 BOMs, and ordinary BOM-less data defaults to `:utf-8`. The
+returned BOM length is zero when no BOM is present.
+
 ### `octets-to-string`
 
 ```lisp
@@ -16,6 +28,14 @@ corresponding condition (see [Conditions](conditions.md)). When `errorp` is
 instead, and decoding continues -- except for `:utf-16`/`:utf-32`/`:ucs-2`,
 which signal `streaming-unsafe-encoding` instead; see
 [Streaming and generic encodings](conditions.md#streaming-and-generic-encodings).
+
+When `encoding` is `:auto`, detection uses exactly `octets[start,end)`,
+consumes the detected leading BOM, and decodes with the corresponding
+explicit byte-order encoding. A BOM-less buffer is selected as `:utf-8`,
+`:utf-16be`, `:utf-16le`, `:utf-32be`, or `:utf-32le` according to the
+detector's null-pattern checks. In this mode `:errorp nil` follows the
+selected explicit encoding and does not have the streaming restriction of a
+generic BOM-sensing designator.
 
 `replacement` `nil` (the default) means `encoding`'s own
 [default replacement](#the-default-replacement-is-per-encoding).
@@ -53,6 +73,13 @@ rather than measuring without allocating -- it exists for API parity with
 babel's `string-size-in-octets`, not as a faster alternative to encoding.
 
 ## Streaming
+
+The streaming decoder APIs do not accept `:auto`. A stateless call processes
+one chunk and cannot know whether that chunk is the beginning of the logical
+stream, so it cannot fix a BOM decision across subsequent chunks. Detect the
+encoding at the stream's start and pass the resulting explicit `:utf-8`,
+`:utf-16be`, `:utf-16le`, `:utf-32be`, or `:utf-32le` designator to every
+streaming call.
 
 ### `decode-prefix`
 

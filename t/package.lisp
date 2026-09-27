@@ -6,6 +6,7 @@
    #:gen-such-that #:describe-each #:run-mutations #:assert-mutation-score
    #:with-soft-assertions)
   (:import-from #:cl-codec-kit
+   #:detect-unicode-encoding
    #:octets-to-string #:string-to-octets #:string-size-in-octets #:decode-prefix
    #:lenient-decode-prefix
    #:*default-encoding* #:list-character-encodings

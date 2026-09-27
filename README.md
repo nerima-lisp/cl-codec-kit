@@ -20,6 +20,22 @@ this exists alongside SBCL's own `sb-ext:octets-to-string`.
 ;; => "café"
 ```
 
+When the Unicode encoding is not known in advance, use `:auto` to detect it
+from the selected octet range. BOMs are consumed before decoding, and
+BOM-less UTF-32/UTF-16 null patterns are recognized; ordinary BOM-less data
+defaults to UTF-8:
+
+```lisp
+(cl-codec-kit:octets-to-string #(239 187 191 99 97 102 195 169)
+                               :encoding :auto)
+;; => "café"
+```
+
+For callers that need the detection result separately,
+`detect-unicode-encoding` returns two values: the encoding designator and the
+number of leading BOM octets to consume. It accepts `:start` and `:end` in
+the same way as the conversion functions.
+
 ## Install
 
 Via a sibling checkout on `CL_SOURCE_REGISTRY` or ASDF's

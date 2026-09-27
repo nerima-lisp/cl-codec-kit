@@ -2,6 +2,7 @@
   (:use #:cl)
   (:export
    #:octets-to-string
+   #:detect-unicode-encoding
    #:string-to-octets
    #:string-size-in-octets
    #:decode-prefix
